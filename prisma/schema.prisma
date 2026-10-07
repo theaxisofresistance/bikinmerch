@@ -1,0 +1,161 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+enum Role {
+  CREATOR
+  CUSTOMER
+  ADMIN
+  PRINT_PARTNER
+}
+
+enum OrderStatus {
+  PAID
+  QUEUED
+  PRINTING
+  QC
+  PACKED
+  SHIPPED
+  DELIVERED
+}
+
+model User {
+  id         String        @id @default(cuid())
+  name       String
+  email      String        @unique
+  password   String
+  role       Role          @default(CUSTOMER)
+  createdAt  DateTime      @default(now())
+  designs    Design[]
+  storefront Storefront?
+  orders     Order[]
+  partner    PrintPartner?
+}
+
+model Product {
+  id           String           @id @default(cuid())
+  name         String
+  slug         String           @unique
+  category     String
+  description  String
+  image        String
+  basePrice    Int
+  printArea    String
+  active       Boolean          @default(true)
+  variants     ProductVariant[]
+  designs      Design[]
+  storeProducts StoreProduct[]
+  orderItems   OrderItem[]
+}
+
+model ProductVariant {
+  id        String  @id @default(cuid())
+  productId String
+  name      String
+  color     String
+  size      String
+  stock     Int     @default(100)
+  product   Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@unique([productId, name])
+}
+
+model Design {
+  id           String        @id @default(cuid())
+  userId       String
+  productId    String
+  name         String
+  canvas       Json
+  preview      String?
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+  user         User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  product      Product       @relation(fields: [productId], references: [id])
+  storeProducts StoreProduct[]
+}
+
+model Storefront {
+  id        String        @id @default(cuid())
+  userId    String        @unique
+  name      String
+  slug      String        @unique
+  bio       String        @default("")
+  published Boolean       @default(true)
+  user      User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  products  StoreProduct[]
+}
+
+model StoreProduct {
+  id          String      @id @default(cuid())
+  storefrontId String
+  productId   String
+  designId    String
+  title       String
+  price       Int
+  active      Boolean     @default(true)
+  createdAt   DateTime    @default(now())
+  storefront  Storefront  @relation(fields: [storefrontId], references: [id], onDelete: Cascade)
+  product     Product     @relation(fields: [productId], references: [id])
+  design      Design      @relation(fields: [designId], references: [id])
+  orderItems  OrderItem[]
+
+  @@unique([storefrontId, designId])
+}
+
+model Order {
+  id              String            @id @default(cuid())
+  orderNumber     String            @unique
+  customerId      String
+  status          OrderStatus       @default(PAID)
+  total           Int
+  shippingAddress String
+  paymentMethod   String            @default("Mock payment")
+  paidAt          DateTime          @default(now())
+  createdAt       DateTime          @default(now())
+  customer        User              @relation(fields: [customerId], references: [id])
+  items           OrderItem[]
+  production      ProductionOrder[]
+}
+
+model OrderItem {
+  id             String      @id @default(cuid())
+  orderId        String
+  storeProductId String
+  productId      String
+  quantity       Int         @default(1)
+  unitPrice      Int
+  baseCost       Int
+  order          Order       @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  storeProduct   StoreProduct @relation(fields: [storeProductId], references: [id])
+  product        Product     @relation(fields: [productId], references: [id])
+}
+
+model PrintPartner {
+  id               String            @id @default(cuid())
+  userId           String            @unique
+  businessName     String
+  city             String
+  capacity         Int               @default(100)
+  active           Boolean           @default(true)
+  user             User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  productionOrders ProductionOrder[]
+}
+
+model ProductionOrder {
+  id        String      @id @default(cuid())
+  orderId   String
+  partnerId String
+  status    OrderStatus @default(QUEUED)
+  notes     String      @default("")
+  updatedAt DateTime    @updatedAt
+  order     Order       @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  partner   PrintPartner @relation(fields: [partnerId], references: [id])
+
+  @@unique([orderId, partnerId])
+}
