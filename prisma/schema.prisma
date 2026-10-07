@@ -131,6 +131,7 @@ model OrderItem {
   quantity       Int         @default(1)
   unitPrice      Int
   baseCost       Int
+  variantName    String      @default("")
   order          Order       @relation(fields: [orderId], references: [id], onDelete: Cascade)
   storeProduct   StoreProduct @relation(fields: [storeProductId], references: [id])
   product        Product     @relation(fields: [productId], references: [id])
