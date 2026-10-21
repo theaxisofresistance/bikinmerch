@@ -45,7 +45,7 @@ export async function POST(req:NextRequest){
 export async function GET(req:NextRequest){
  const user=await readSession(req);
  if(!user)return NextResponse.json({error:"Login diperlukan."},{status:401});
- const where=user.role==="CUSTOMER"||user.role==="CREATOR"?{customerId:user.id}:{};
- const orders=await db.order.findMany({where,include:{customer:{select:{name:true,email:true}},items:{include:{product:true,storeProduct:{include:{storefront:true,design:true}}}},production:{include:{partner:true}}},orderBy:{createdAt:"desc"}});
+ if(user.role!=="CUSTOMER")return NextResponse.json({error:"Pesanan Saya hanya tersedia untuk akun Customer."},{status:403});
+ const orders=await db.order.findMany({where:{customerId:user.id},include:{customer:{select:{name:true,email:true}},items:{include:{product:true,storeProduct:{include:{storefront:true,design:true}}}},production:{include:{partner:true}}},orderBy:{createdAt:"desc"}});
  return NextResponse.json(orders);
 }

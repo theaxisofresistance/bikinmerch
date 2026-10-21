@@ -24,7 +24,9 @@ export async function GET(req: NextRequest) {
       where: {userId: user.id},
       include: {
         product: true,
-        storeProducts: {select: {id: true, active: true}},
+        storeProducts: {
+          select: {id: true, active: true, title: true, price: true},
+        },
       },
       orderBy: {updatedAt: "desc"},
     }),

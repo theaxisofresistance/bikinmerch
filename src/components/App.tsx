@@ -1,30 +1,1699 @@
 "use client";
-import {useCallback,useEffect,useMemo,useState} from "react";import {usePathname,useRouter,useSearchParams} from "next/navigation";import {ArrowRight,Check,ChevronDown,ChevronRight,Heart,Menu,Package,Palette,Plus,Shirt,ShoppingBag,Store,TrendingUp,Truck,X} from "lucide-react";import Link from "next/link";import Studio from "./Studio";import PartnerDesignView from "./PartnerDesignView";
-type User={id:string,name:string,email:string,role:string};type Product={id:string,name:string,slug:string,category:string,description:string,image:string,basePrice:number,printArea:string};type ShopItem={id:string,title:string,price:number,product:Product,storefront?:{slug:string},design?:{preview?:string|null}};
-const money=(v:number)=>new Intl.NumberFormat("id-ID",{style:"currency",currency:"IDR",maximumFractionDigits:0}).format(v);
-export default function App(){const path=usePathname(),router=useRouter(),query=useSearchParams();const [user,setUser]=useState<User|null>(null),[products,setProducts]=useState<Product[]>([]),[auth,setAuth]=useState(false),[register,setRegister]=useState(false),[menu,setMenu]=useState(false),[busy,setBusy]=useState(false),[err,setErr]=useState(""),[store,setStore]=useState<any>(null),[dashboard,setDashboard]=useState<any>(null),[orders,setOrders]=useState<any[]>([]),[checkout,setCheckout]=useState<ShopItem|null>(null),[address,setAddress]=useState("");
- const [appLoading,setAppLoading]=useState(true),[pageLoading,setPageLoading]=useState(false);const load=useCallback(async()=>{setAppLoading(true);try{const [me,pr]=await Promise.all([fetch("/api/auth/me").then(r=>r.json()),fetch("/api/products").then(r=>r.json())]);setUser(me.user);setProducts(Array.isArray(pr)?pr:[])}finally{setAppLoading(false)}},[]);
- useEffect(()=>{load()},[load]);useEffect(()=>{let active=true;async function fetchPage(){let url="",setter:(value:any)=>void=()=>{};if(path==="/dashboard"&&user){url="/api/dashboard";setter=setDashboard}else if((path==="/partner"||path==="/orders")&&user){url=path==="/partner"?"/api/production":"/api/orders";setter=setOrders}else if(path.startsWith("/store/")&&path!=="/store"){url=`/api/store?slug=${path.split("/")[2]}`;setter=setStore}else if(path==="/designs"&&user?.role==="CREATOR")url="/api/designs";else if(path==="/admin"&&user?.role==="ADMIN")url="/api/admin";else if(path==="/studio"&&query.get("design")&&user)url=`/api/designs?id=${encodeURIComponent(query.get("design")!)}`;if(!url){setPageLoading(false);return}setPageLoading(true);try{const response=await fetch(url),data=await response.json();if(active)setter(data)}finally{if(active)setPageLoading(false)}}fetchPage();return()=>{active=false}},[path,user,query]);
- async function authSubmit(e:React.FormEvent<HTMLFormElement>){e.preventDefault();setBusy(true);setErr("");const fd=new FormData(e.currentTarget);const payload=Object.fromEntries(fd.entries());const res=await fetch(register?"/api/auth/register":"/api/auth/login",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(payload)});const data=await res.json();setBusy(false);if(!res.ok){setErr(data.error);return}setUser(data.user);setAuth(false);router.refresh();}
- async function logout(){await fetch("/api/auth/me",{method:"DELETE"});setUser(null);setDashboard(null);router.push("/")}
- async function checkoutSubmit(e:React.FormEvent){e.preventDefault();if(!checkout)return;setBusy(true);const res=await fetch("/api/orders",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({storeProductId:checkout.id,shippingAddress:address,quantity:1})});const data=await res.json();setBusy(false);if(!res.ok){setErr(data.error);return}setCheckout(null);setErr("");router.push("/orders")}
- const href=path;const isCreator=user?.role==="CREATOR";const name=user?.name?.split(" ")[0];if(appLoading||pageLoading)return <PageSkeleton kind={path}/>;
- return <><header className="topbar"><div className="container" style={{display:"flex",alignItems:"center"}}><Link className="brand" href="/">Bikin<span>Merch</span></Link><nav className="navlinks">{user?.role==="CUSTOMER"?<Link href="/orders">Pesanan</Link>:null}<Link href="/#produk">Katalog</Link><Link href={isCreator?"/dashboard":"/studio"}>Untuk Kreator</Link><Link href={user?"/store/ruang-karya":"/#cara-kerja"}>Cara Kerja</Link></nav><div style={{marginLeft:"auto",display:"flex",alignItems:"center",gap:10}}>{user?<><span className="muted" style={{fontSize:12}}>Halo, {name}</span><button className="btn btn-light btn-sm" onClick={()=>setMenu(!menu)}>{user.role.replace("_"," ")} <ChevronDown size={13}/></button>{menu&&<div style={{position:"absolute",right:25,top:62,zIndex:20,background:"white",padding:8,borderRadius:12,boxShadow:"0 10px 32px #10201622"}}>{[["Dashboard","/dashboard"],["Studio","/studio"],...(isCreator?[["Desain Tersimpan","/designs"]]:[]),...(["CREATOR","CUSTOMER"].includes(user.role)?[["Pesanan Saya","/orders"]]:[]),["Partner","/partner"],["Admin","/admin"]].map(([t,h])=><Link key={t} href={h} className="side-link" style={{display:"block"}}>{t}</Link>)}<button className="side-link" onClick={logout}>Keluar</button></div>}</>:<><button className="btn btn-light btn-sm" onClick={()=>{setRegister(false);setAuth(true)}}>Masuk</button><button className="btn btn-sm" onClick={()=>{setRegister(true);setAuth(true)}}>Mulai gratis</button></>}<button className="mobile-menu btn btn-light btn-sm" onClick={()=>setMenu(!menu)}><Menu size={16}/></button></div></div></header>
- {path==="/"&&<main className="container"><section className="hero"><div className="hero-copy"><div className="eyebrow">Platform kreator lokal · dibuat di Indonesia</div><h1>Karyamu,<br/>jadi <span style={{color:"#26734e"}}>merchandise.</span></h1><p>Bikin produk custom, buka toko online, dan biarkan kami mengurus produksinya. Tanpa stok, tanpa ribet.</p><div style={{display:"flex",gap:10,flexWrap:"wrap"}}><Link href="/studio" className="btn btn-lime" style={{display:"inline-flex",alignItems:"center",gap:8}}>Mulai mendesain <ArrowRight size={15}/></Link><a href="#produk" className="btn btn-light">Jelajahi produk</a></div><div style={{display:"flex",gap:17,marginTop:27,fontSize:11,color:"#68766b"}}><span>✓ Tanpa minimum order</span><span>✓ Produksi lokal</span></div></div><div className="hero-art"><div className="tee">✳</div></div></section><div id="produk" className="section-head"><div><div className="eyebrow">Katalog pilihan</div><h2>Mulai dari produk favorit</h2></div><span className="muted">5 produk · siap kamu kreasikan</span></div><section className="grid-products">{products.map(p=><article className="card" key={p.id}><img className="product-img" src={p.image} alt={p.name}/><div className="card-body"><span className="badge">{p.category}</span><h3>{p.name}</h3><p>{p.description}</p><div className="product-foot"><span className="price">{money(p.basePrice)}</span><Link href={`/studio?product=${p.id}`} className="btn btn-sm">Desain</Link></div></div></article>)}</section><section id="cara-kerja" className="feature-row">{[[Palette,"01","Desain sesukamu","Editor simpel untuk bikin artwork, coba komposisi, dan lihat hasilnya."],[Store,"02","Buka tokomu","Tentukan margin dan bagikan storefront-mu ke komunitas."],[Truck,"03","Kami produksi","Partner lokal mencetak, cek kualitas, dan kirim ke pembeli."]].map(([Icon,n,t,d]:any)=><div className="feature" key={n}><div className="feature-icon"><Icon size={18}/></div><div className="eyebrow" style={{marginTop:14}}>LANGKAH {n}</div><h3>{t}</h3><p>{d}</p></div>)}</section><section style={{background:"#1d5f43",color:"white",padding:"33px 38px",borderRadius:20,display:"flex",justifyContent:"space-between",alignItems:"center",gap:20,flexWrap:"wrap"}}><div><div className="eyebrow" style={{color:"#c3e480"}}>Untuk kreator Indonesia</div><h2 style={{fontSize:26,margin:"10px 0 5px"}}>Satu ide, banyak kemungkinan.</h2><p style={{color:"#d5e4d9",fontSize:13,margin:0}}>Mulai toko tanpa modal stok di muka.</p></div><button className="btn btn-lime" onClick={()=>isCreator?router.push("/dashboard"):(setRegister(true),setAuth(true))}>Buka tokomu <ArrowRight size={15}/></button></section></main>}
- {path==="/studio"&&<Studio products={products} user={user} onLogin={()=>setAuth(true)}/>} 
- {path==="/designs"&&<SavedDesigns user={user} onLogin={()=>setAuth(true)}/>} 
- {path==="/dashboard"&&<main className="container"><div className="page-head"><div><div className="eyebrow">Creator studio</div><h1>Ringkasan tokomu</h1><div className="muted">Pantau performa dan kelola pesanan.</div></div><Link className="btn" href="/studio">+ Buat desain baru</Link></div>{!user?<div className="empty">Masuk sebagai Creator untuk membuka dashboard. <button className="btn btn-sm" onClick={()=>setAuth(true)}>Masuk</button></div>:user.role!=="CREATOR"?<div className="empty">Dashboard ini khusus Creator. Akunmu memiliki role {user.role}.</div>:<><div className="metric-grid">{[["Total pesanan",dashboard?.orders??"—"],["Total penjualan",dashboard?money(dashboard.revenue):"—"],["Estimasi profit",dashboard?money(dashboard.profit):"—"]].map(([k,v])=><div className="metric" key={k}><span>{k}</span><strong>{v}</strong><div className="muted" style={{fontSize:11,marginTop:5}}>Sejak toko dibuat</div></div>)}</div><div className="panel"><h3>Penjualan & profit</h3><Chart data={dashboard?.chart||[]}/></div><div className="panel"><div style={{display:"flex",justifyContent:"space-between"}}><h3>Produk terlaris</h3><Link href={dashboard?.store?.slug?`/store/${dashboard.store.slug}`:"/store/ruang-karya"} className="muted">Lihat tokomu →</Link></div>{dashboard?.best?.length?<table className="table"><thead><tr><th>Produk</th><th>Terjual</th></tr></thead><tbody>{dashboard.best.map((b:any)=><tr key={b.product}><td>{b.product}</td><td>{b.sales}</td></tr>)}</tbody></table>:<div className="muted">Produk terlaris akan muncul setelah ada pesanan.</div>}</div><div className="panel"><h3>Pesanan terbaru</h3>{dashboard?.recent?.length?<div style={{overflowX:"auto"}}><table className="table"><thead><tr><th>Pesanan</th><th>Tanggal</th><th>Produk</th><th>Status</th><th>Profit</th></tr></thead><tbody>{dashboard.recent.map((o:any)=><tr key={o.id}><td>{o.orderNumber}</td><td>{new Date(o.createdAt).toLocaleDateString("id-ID")}</td><td>{o.items[0]?.product.name}</td><td><span className="status">{o.status}</span></td><td>{money(o.items.reduce((s:number,i:any)=>s+(i.unitPrice-i.baseCost)*i.quantity,0))}</td></tr>)}</tbody></table></div>:<div className="empty">Belum ada pesanan. Publikasikan desain pertamamu agar mulai bisa terjual.</div>}</div></>}</main>}
- {path==="/partner"&&<PartnerPanelV2 user={user} orders={orders} onLogin={()=>setAuth(true)} onReload={()=>fetch("/api/production").then(r=>r.json()).then(setOrders)}/>} 
- {path==="/orders"&&<OrderTrackingV2 user={user} orders={orders} onLogin={()=>setAuth(true)}/>} 
- {path==="/admin"&&<AdminPanel user={user} onLogin={()=>setAuth(true)}/>}
- {path.startsWith("/store/")&&<main className="container">{store?.id?<><section className="store-hero"><div className="eyebrow">Storefront kreator</div><h1 style={{fontSize:37,margin:"11px 0"}}>{store.name}</h1><p className="muted">{store.bio||"Koleksi pilihan dari kreator lokal."}</p><span className="badge">bikinmerch.id/@{store.slug}</span></section><div className="section-head"><div><div className="eyebrow">Koleksi</div><h2>Produk dari toko ini</h2></div></div><section className="grid-products">{store.products.map((sp:ShopItem)=><article className="card" key={sp.id}><div style={{position:"relative"}}><img className="product-img" src={sp.product.image} alt={sp.title}/>{sp.design?.preview&&<img src={sp.design.preview} style={{position:"absolute",width:"40%",height:"38%",objectFit:"contain",left:"30%",top:"25%"}} alt="Desain produk"/>}</div><div className="card-body"><span className="badge">{sp.product.name}</span><h3>{sp.title}</h3><div className="product-foot" style={{marginTop:15}}><span className="price">{money(sp.price)}</span><button className="btn btn-sm" onClick={()=>{if(!user){setErr("");setAuth(true);return}setCheckout(sp)}}>Beli sekarang</button></div></div></article>)}</section>{!store.products.length&&<div className="empty">Toko ini belum mempublikasikan produk.</div>}</>:<div className="empty" style={{marginTop:40}}>{store===null?"Memuat toko…":"Toko tidak ditemukan."}</div>}</main>}
- <footer className="footer"><div className="container" style={{display:"flex",justifyContent:"space-between",gap:15,flexWrap:"wrap"}}><span><b className="brand" style={{fontSize:15}}>Bikin<span>Merch</span></b> · Karyamu, jadi merchandise.</span><span>Produksi lokal, karya kreator Indonesia.</span><span>Roadmap: payment gateway · logistik · API</span></div></footer>
- {auth&&<div className="modal-backdrop" onMouseDown={e=>e.target===e.currentTarget&&setAuth(false)}><form className="modal" onSubmit={authSubmit}><div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}><div><div className="eyebrow">BikinMerch</div><h2>{register?"Buat akun baru":"Selamat datang kembali"}</h2><div className="muted">{register?"Mulai jual karyamu tanpa stok.":"Masuk untuk melanjutkan."}</div></div><button type="button" className="btn btn-light btn-sm" onClick={()=>setAuth(false)}><X size={16}/></button></div>{register&&<><label className="label">Nama</label><input className="input" name="name" required placeholder="Nama lengkap"/></>}<label className="label">Email</label><input className="input" name="email" type="email" required placeholder="kamu@email.com"/><label className="label">Kata sandi</label><input className="input" name="password" type="password" required minLength={8} placeholder="Minimal 8 karakter"/>{register&&<><label className="label">Saya ingin bergabung sebagai</label><select className="input" name="role"><option value="CREATOR">Creator — membuat dan menjual desain</option><option value="CUSTOMER">Customer — membeli merchandise</option></select></>}{err&&<div className="error">{err}</div>}<button className="btn" style={{width:"100%",marginTop:18}} disabled={busy}>{busy?"Memproses…":register?"Daftar gratis":"Masuk"}</button><div className="muted" style={{textAlign:"center",marginTop:14,fontSize:12}}>{register?"Sudah punya akun?":"Belum punya akun?"} <button type="button" style={{color:"#176b4d",fontWeight:700,border:0,background:"none"}} onClick={()=>{setRegister(!register);setErr("")}}>{register?"Masuk":"Daftar"}</button></div><p style={{borderTop:"1px solid #eee",paddingTop:12,marginTop:15,fontSize:10,color:"#89918a",lineHeight:1.6}}>Akun demo tersedia setelah seed: creator@bikinmerch.id, customer@bikinmerch.id, admin@bikinmerch.id, partner@bikinmerch.id. Password: bikinmerch123</p></form></div>}
- {checkout&&<div className="modal-backdrop" onMouseDown={e=>e.target===e.currentTarget&&setCheckout(null)}><form className="modal" onSubmit={checkoutSubmit}><div style={{display:"flex",justifyContent:"space-between"}}><div><div className="eyebrow">Checkout aman</div><h2>Pesan produk</h2></div><button type="button" className="btn btn-light btn-sm" onClick={()=>setCheckout(null)}><X size={16}/></button></div><div style={{background:"#f4f6f2",padding:13,borderRadius:12,marginTop:16}}><b>{checkout.title}</b><div className="muted">{checkout.product.name} · Mock payment</div><strong style={{display:"block",marginTop:8}}>{money(checkout.price)}</strong></div><label className="label">Alamat pengiriman</label><textarea className="input" required rows={3} value={address} onChange={e=>setAddress(e.target.value)} placeholder="Nama jalan, kecamatan, kota, kode pos"/>{err&&<div className="error">{err}</div>}<button className="btn" disabled={busy} style={{width:"100%",marginTop:18}}>{busy?"Membuat pesanan…":"Bayar sekarang · Mock"}</button><p className="muted" style={{fontSize:10,lineHeight:1.5}}>Pembayaran simulasi untuk demo. Pesanan akan langsung berstatus Paid dan dikirim ke partner produksi.</p></form></div>}
- </>}
-function PageSkeleton({kind="page",embedded=false}:{kind?:string;embedded?:boolean}){const studio=kind.includes("studio"),cards=kind==="/"||kind.includes("store")||kind.includes("designs"),table=kind.includes("orders")||kind.includes("partner")||kind.includes("admin");return <div className={`skeleton-page${embedded?" embedded":""}`} aria-busy="true" aria-label="Memuat data"><div className="skeleton-header"><div className="sk sk-logo"/><div className="sk-nav"><i className="sk"/><i className="sk"/><i className="sk"/></div><div className="sk sk-user"/></div>{studio?<div className="skeleton-studio"><aside><i className="sk sk-line wide"/><i className="sk sk-line"/>{Array.from({length:6},(_,i)=><i className="sk sk-item" key={i}/>)}</aside><section><i className="sk sk-toolbar"/><i className="sk sk-canvas"/></section><aside><i className="sk sk-line wide"/>{Array.from({length:5},(_,i)=><i className="sk sk-field" key={i}/>)}</aside></div>:<main className="skeleton-content"><div className="sk sk-kicker"/><div className="sk sk-title"/><div className="sk sk-subtitle"/>{cards&&<div className="skeleton-cards">{Array.from({length:6},(_,i)=><div className="skeleton-card" key={i}><i className="sk sk-image"/><i className="sk sk-line wide"/><i className="sk sk-line"/></div>)}</div>}{table&&<div className="skeleton-table"><i className="sk sk-table-head"/>{Array.from({length:6},(_,i)=><i className="sk sk-table-row" key={i}/>)}</div>}{!cards&&!table&&<><div className="skeleton-metrics">{[1,2,3].map(i=><i className="sk" key={i}/>)}</div><i className="sk sk-panel"/></>}</main>}</div>}
-function Chart({data}:{data:any[]}){const [Ready,setReady]=useState(false);useEffect(()=>setReady(true),[]);if(!Ready)return <div style={{height:245}}/>;const Recharts=require("recharts");const {ResponsiveContainer,LineChart,Line,XAxis,YAxis,Tooltip,CartesianGrid,Legend}=Recharts;return <div style={{height:250}}><ResponsiveContainer width="100%" height="100%"><LineChart data={data}><CartesianGrid strokeDasharray="3 3" vertical={false}/><XAxis dataKey="date" tick={{fontSize:10}}/><YAxis tick={{fontSize:10}}/><Tooltip formatter={(v:any)=>money(Number(v))}/><Legend/><Line type="monotone" dataKey="revenue" name="Penjualan" stroke="#176b4d" strokeWidth={3}/><Line type="monotone" dataKey="profit" name="Profit" stroke="#a5c93d" strokeWidth={3}/></LineChart></ResponsiveContainer></div>}
-function SavedDesigns({user,onLogin}:{user:User|null,onLogin:()=>void}){const [designs,setDesigns]=useState<any[]|null>(null),[error,setError]=useState("");const load=useCallback(async()=>{setError("");const response=await fetch("/api/designs");const data=await response.json();if(!response.ok){setError(data.error||"Desain gagal dimuat.");setDesigns([]);return}setDesigns(data)},[]);useEffect(()=>{if(user?.role==="CREATOR")load();else setDesigns([])},[user,load]);async function remove(id:string,name:string){if(!window.confirm(`Hapus desain “${name}”? Tindakan ini tidak dapat dibatalkan.`))return;const response=await fetch(`/api/designs?id=${encodeURIComponent(id)}`,{method:"DELETE"});const data=await response.json();if(!response.ok){setError(data.error||"Desain gagal dihapus.");return}setDesigns(current=>current?.filter(item=>item.id!==id)||[])}return <main className="container"><div className="page-head"><div><div className="eyebrow">Creator studio</div><h1>Desain tersimpan</h1><div className="muted">Edit, lanjutkan, atau hapus desainmu.</div></div><Link className="btn" href="/studio">+ Buat desain baru</Link></div>{!user?<div className="empty">Masuk sebagai Creator untuk melihat desain tersimpan. <button className="btn btn-sm" onClick={onLogin}>Masuk</button></div>:user.role!=="CREATOR"?<div className="empty">Halaman desain tersimpan hanya tersedia untuk akun Creator.</div>:designs===null?<div className="empty">Memuat desain…</div>:<>{error&&<div className="error" style={{marginBottom:14}}>{error}</div>}{designs.length===0?<div className="empty">Belum ada desain tersimpan. <Link className="btn btn-sm" href="/studio">Buat desain pertama</Link></div>:<section className="saved-design-grid">{designs.map(design=><article className="saved-design-card" key={design.id}><div className="saved-design-preview">{design.preview?<img src={design.preview} alt={`Preview ${design.name}`}/>:<img src={design.product.image} alt={design.product.name}/>}<span className="badge">{design.storeProducts?.length?"Dipublikasikan":"Draft"}</span></div><div className="saved-design-body"><div className="eyebrow">{design.product.name}</div><h2>{design.name}</h2><p className="muted">Diperbarui {new Date(design.updatedAt).toLocaleString("id-ID",{dateStyle:"medium",timeStyle:"short"})}</p><div className="saved-design-actions"><Link className="btn btn-sm" href={`/studio?product=${design.productId}&design=${design.id}`}>Edit Desain</Link><button className="btn btn-light btn-sm" onClick={()=>remove(design.id,design.name)} disabled={Boolean(design.storeProducts?.length)}>Hapus</button></div>{design.storeProducts?.length>0&&<small className="muted">Desain yang sudah dipublikasikan tidak dapat dihapus.</small>}</div></article>)}</section>}</>}</main>}
-function OrderTrackingV2({user,orders,onLogin}:{user:User|null,orders:any[],onLogin:()=>void}){const steps=["PAID","QUEUED","PRINTING","QC","PACKED","SHIPPED","DELIVERED"];const allowed=user?.role==="CUSTOMER"||user?.role==="CREATOR";return <main className="container"><div className="page-head"><div><div className="eyebrow">Pesananmu</div><h1>Lacak pesanan</h1><div className="muted">Perjalanan merchandise dari pembayaran sampai tujuan.</div></div><Link className="btn" href="/studio">Buat desain & pesan</Link></div>{!user?<div className="empty">Masuk untuk melihat pesananmu. <button className="btn btn-sm" onClick={onLogin}>Masuk</button></div>:!allowed?<div className="empty">Riwayat pemesanan tersedia untuk akun Creator dan Customer.</div>:!orders.length?<div className="empty">Belum ada pesanan. Mulai dari Studio atau katalog produk.</div>:orders.map(o=>{const index=steps.indexOf(o.status);return <article key={o.id} className="panel" style={{marginBottom:14}}><div style={{display:"flex",justifyContent:"space-between",gap:10,flexWrap:"wrap"}}><div><div className="eyebrow">{o.orderNumber}</div><strong>{o.items.map((item:any)=>`${item.product.name}${item.variantName?` · ${item.variantName}`:""} × ${item.quantity}`).join(", ")}</strong><div className="muted" style={{marginTop:5}}>{new Date(o.createdAt).toLocaleString("id-ID")} · {money(o.total)}</div></div><span className="status">{o.status}</span></div><div style={{display:"grid",gridTemplateColumns:"repeat(7,minmax(65px,1fr))",gap:4,marginTop:22,overflowX:"auto"}}>{steps.map((step,i)=><div key={step} style={{textAlign:"center",opacity:i<=index?1:.38}}><div style={{height:5,borderRadius:5,background:i<=index?"#176b4d":"#e5e9e2",marginBottom:7}}/><div style={{fontSize:9,fontWeight:i===index?800:500,color:i<=index?"#176b4d":"#79817b"}}>{step}</div></div>)}</div><div className="muted" style={{marginTop:12,fontSize:11}}>Dikirim ke: {o.shippingAddress}</div></article>})}</main>}
-function PartnerPanelV2({user,orders,onLogin,onReload}:{user:User|null,orders:any[],onLogin:()=>void,onReload:()=>void}){const [selected,setSelected]=useState<any>(null);async function setStatus(id:string,status:string){const response=await fetch("/api/production",{method:"PATCH",headers:{"Content-Type":"application/json"},body:JSON.stringify({id,status})});if(!response.ok)alert((await response.json()).error);else onReload()}const progression=["QUEUED","PRINTING","QC","PACKED","SHIPPED","DELIVERED"];return <><main className="container"><div className="page-head"><div><div className="eyebrow">Print partner portal</div><h1>Antrean produksi</h1><div className="muted">Periksa file desain, export artwork, dan perbarui tahap produksi.</div></div></div>{!user?<div className="empty">Masuk menggunakan akun Print Partner. <button className="btn btn-sm" onClick={onLogin}>Masuk</button></div>:user.role!=="PRINT_PARTNER"&&user.role!=="ADMIN"?<div className="empty">Akunmu bukan Print Partner.</div>:orders.length===0?<div className="empty">Belum ada order produksi.</div>:<div className="panel"><table className="table"><thead><tr><th>Order</th><th>Customer</th><th>Produk & varian</th><th>Desain</th><th>Status produksi</th></tr></thead><tbody>{orders.map(order=><tr key={order.id}><td><strong>{order.order.orderNumber}</strong><div className="muted" style={{fontSize:10,marginTop:4}}>{order.order.items[0]?.quantity||1} pcs</div></td><td>{order.order.customer.name}</td><td>{order.order.items[0]?.product.name}<div className="muted" style={{fontSize:10,marginTop:4}}>{order.order.items[0]?.variantName||"Varian standar"}</div></td><td><button className="btn btn-light btn-sm" onClick={()=>setSelected(order)}>View design</button></td><td><select className="input" value={order.status} onChange={event=>setStatus(order.id,event.target.value)} style={{padding:"7px",minWidth:130}}>{progression.map(status=><option key={status}>{status}</option>)}</select></td></tr>)}</tbody></table></div>}</main>{selected&&<PartnerDesignView production={selected} onClose={()=>setSelected(null)}/>}</>}
-function AdminPanel({user,onLogin}:{user:User|null,onLogin:()=>void}){const [data,setData]=useState<any>(null);const load=()=>fetch("/api/admin").then(r=>r.json()).then(setData);useEffect(()=>{if(user?.role==="ADMIN")load()},[user]);async function toggle(kind:string,id:string,active:boolean){const r=await fetch("/api/admin",{method:"PATCH",headers:{"Content-Type":"application/json"},body:JSON.stringify({kind,id,active})});if(!r.ok)alert((await r.json()).error);else load()}return <main className="container"><div className="page-head"><div><div className="eyebrow">BikinMerch operations</div><h1>Admin dashboard</h1><div className="muted">Ringkasan platform dan operasional.</div></div></div>{!user?<div className="empty">Masuk sebagai Admin untuk melihat data platform. <button className="btn btn-sm" onClick={onLogin}>Masuk</button></div>:user.role!=="ADMIN"?<div className="empty">Akunmu bukan Admin.</div>:<><div className="metric-grid">{[["Pengguna",data?.users?.length??"—"],["Produk katalog",data?.products?.length??"—"],["Pesanan",data?.orders?.length??"—"]].map(([k,v])=><div className="metric" key={k}><span>{k}</span><strong>{v}</strong></div>)}</div><div className="panel"><h3>Produk katalog</h3><table className="table"><thead><tr><th>Produk</th><th>Kategori</th><th>Harga dasar</th><th>Varian</th><th>Status</th><th>Aksi</th></tr></thead><tbody>{data?.products?.map((p:any)=><tr key={p.id}><td>{p.name}</td><td>{p.category}</td><td>{money(p.basePrice)}</td><td>{p._count.variants}</td><td>{p.active?"Aktif":"Nonaktif"}</td><td><button className="btn btn-light btn-sm" onClick={()=>toggle("product",p.id,!p.active)}>{p.active?"Nonaktifkan":"Aktifkan"}</button></td></tr>)}</tbody></table></div><div className="panel"><h3>Pesanan terbaru</h3><table className="table"><thead><tr><th>Order</th><th>Pembeli</th><th>Nilai</th><th>Status</th></tr></thead><tbody>{data?.orders?.map((o:any)=><tr key={o.id}><td>{o.orderNumber}</td><td>{o.customer.name}</td><td>{money(o.total)}</td><td><span className="status">{o.status}</span></td></tr>)}</tbody></table></div><div className="panel"><h3>Print partner</h3><table className="table"><thead><tr><th>Bisnis</th><th>Kontak</th><th>Kota</th><th>Kapasitas</th><th>Status</th><th>Aksi</th></tr></thead><tbody>{data?.partners?.map((p:any)=><tr key={p.id}><td>{p.businessName}</td><td>{p.user.name}</td><td>{p.city}</td><td>{p.capacity}</td><td>{p.active?"Aktif":"Nonaktif"}</td><td><button className="btn btn-light btn-sm" onClick={()=>toggle("partner",p.id,!p.active)}>{p.active?"Nonaktifkan":"Aktifkan"}</button></td></tr>)}</tbody></table></div><div className="panel"><h3>Pengguna</h3><table className="table"><thead><tr><th>Nama</th><th>Email</th><th>Role</th><th>Bergabung</th></tr></thead><tbody>{data?.users?.map((u:any)=><tr key={u.id}><td>{u.name}</td><td>{u.email}</td><td>{u.role}</td><td>{new Date(u.createdAt).toLocaleDateString("id-ID")}</td></tr>)}</tbody></table></div></>}</main>}
+import {useCallback, useEffect, useMemo, useState} from "react";
+import {usePathname, useRouter, useSearchParams} from "next/navigation";
+import {
+  ArrowRight,
+  Check,
+  ChevronDown,
+  ChevronRight,
+  Heart,
+  Menu,
+  Package,
+  Palette,
+  Plus,
+  Shirt,
+  ShoppingBag,
+  Store,
+  TrendingUp,
+  Truck,
+  X,
+} from "lucide-react";
+import Link from "next/link";
+import Swal from "sweetalert2";
+import Studio from "./Studio";
+import PartnerDesignView from "./PartnerDesignView";
+type User = {id: string; name: string; email: string; role: string};
+type Product = {
+  id: string;
+  name: string;
+  slug: string;
+  category: string;
+  description: string;
+  image: string;
+  basePrice: number;
+  printArea: string;
+};
+type ShopItem = {
+  id: string;
+  title: string;
+  price: number;
+  product: Product;
+  storefront?: {slug: string};
+  design?: {preview?: string | null};
+};
+const money = (v: number) =>
+  new Intl.NumberFormat("id-ID", {
+    style: "currency",
+    currency: "IDR",
+    maximumFractionDigits: 0,
+  }).format(v);
+export default function App() {
+  const path = usePathname(),
+    router = useRouter(),
+    query = useSearchParams();
+  const [user, setUser] = useState<User | null>(null),
+    [products, setProducts] = useState<Product[]>([]),
+    [auth, setAuth] = useState(false),
+    [register, setRegister] = useState(false),
+    [menu, setMenu] = useState(false),
+    [busy, setBusy] = useState(false),
+    [err, setErr] = useState(""),
+    [store, setStore] = useState<any>(null),
+    [dashboard, setDashboard] = useState<any>(null),
+    [orders, setOrders] = useState<any[]>([]),
+    [checkout, setCheckout] = useState<ShopItem | null>(null),
+    [address, setAddress] = useState("");
+  const [appLoading, setAppLoading] = useState(true),
+    [pageLoading, setPageLoading] = useState(false);
+  const load = useCallback(async () => {
+    setAppLoading(true);
+    try {
+      const [me, pr] = await Promise.all([
+        fetch("/api/auth/me").then((r) => r.json()),
+        fetch("/api/products").then((r) => r.json()),
+      ]);
+      setUser(me.user);
+      setProducts(Array.isArray(pr) ? pr : []);
+    } finally {
+      setAppLoading(false);
+    }
+  }, []);
+  useEffect(() => {
+    load();
+  }, [load]);
+  useEffect(() => {
+    let active = true;
+    async function fetchPage() {
+      let url = "",
+        setter: (value: any) => void = () => {};
+      if (path === "/dashboard" && user) {
+        url = "/api/dashboard";
+        setter = setDashboard;
+      } else if (path === "/partner" && user) {
+        url = "/api/production";
+        setter = setOrders;
+      } else if (path === "/orders" && user?.role === "CUSTOMER") {
+        url = "/api/orders";
+        setter = setOrders;
+      } else if (path.startsWith("/store/") && path !== "/store") {
+        url = `/api/store?username=${encodeURIComponent(path.split("/")[2])}`;
+        setter = setStore;
+      } else if (path === "/designs" && user?.role === "CREATOR")
+        url = "/api/designs";
+      else if (path === "/admin" && user?.role === "ADMIN") url = "/api/admin";
+      else if (path === "/studio" && query.get("design") && user)
+        url = `/api/designs?id=${encodeURIComponent(query.get("design")!)}`;
+      if (!url) {
+        setPageLoading(false);
+        return;
+      }
+      setPageLoading(true);
+      try {
+        const response = await fetch(url),
+          data = await response.json();
+        if (active) setter(data);
+      } finally {
+        if (active) setPageLoading(false);
+      }
+    }
+    fetchPage();
+    return () => {
+      active = false;
+    };
+  }, [path, user, query]);
+  async function authSubmit(e: React.FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    setBusy(true);
+    setErr("");
+    const fd = new FormData(e.currentTarget);
+    const payload = Object.fromEntries(fd.entries());
+    const res = await fetch(
+      register ? "/api/auth/register" : "/api/auth/login",
+      {
+        method: "POST",
+        headers: {"Content-Type": "application/json"},
+        body: JSON.stringify(payload),
+      },
+    );
+    const data = await res.json();
+    setBusy(false);
+    if (!res.ok) {
+      setErr(data.error);
+      return;
+    }
+    setUser(data.user);
+    setAuth(false);
+    router.refresh();
+  }
+  async function logout() {
+    await fetch("/api/auth/me", {method: "DELETE"});
+    setUser(null);
+    setDashboard(null);
+    router.push("/");
+  }
+  async function checkoutSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    if (!checkout) return;
+    if (user?.role !== "CUSTOMER") {
+      setErr("Pembelian hanya tersedia untuk akun Customer.");
+      return;
+    }
+    setBusy(true);
+    const res = await fetch("/api/orders", {
+      method: "POST",
+      headers: {"Content-Type": "application/json"},
+      body: JSON.stringify({
+        storeProductId: checkout.id,
+        shippingAddress: address,
+        quantity: 1,
+      }),
+    });
+    const data = await res.json();
+    setBusy(false);
+    if (!res.ok) {
+      setErr(data.error);
+      return;
+    }
+    setCheckout(null);
+    setErr("");
+    router.push("/orders");
+  }
+  const href = path;
+  const isCreator = user?.role === "CREATOR";
+  const name = user?.name?.split(" ")[0];
+  if (appLoading || pageLoading) return <PageSkeleton kind={path} />;
+  return (
+    <>
+      <header className="topbar">
+        <div
+          className="container"
+          style={{display: "flex", alignItems: "center"}}>
+          <Link className="brand" href="/">
+            Bikin<span>Merch</span>
+          </Link>
+          <nav className="navlinks">
+            {user?.role === "CUSTOMER" ? (
+              <Link href="/orders">Pesanan</Link>
+            ) : null}
+            <Link href="/#produk">Katalog</Link>
+            <Link
+              href={
+                isCreator
+                  ? "/dashboard"
+                  : user?.role === "CUSTOMER"
+                    ? "/#cara-kerja"
+                    : "/studio"
+              }>
+              Untuk Kreator
+            </Link>
+            <Link href={user ? "/store/ruang-karya" : "/#cara-kerja"}>
+              Cara Kerja
+            </Link>
+          </nav>
+          <div
+            style={{
+              marginLeft: "auto",
+              display: "flex",
+              alignItems: "center",
+              gap: 10,
+            }}>
+            {user ? (
+              <>
+                <span className="muted" style={{fontSize: 12}}>
+                  Halo, {name}
+                </span>
+                <button
+                  className="btn btn-light btn-sm"
+                  onClick={() => setMenu(!menu)}>
+                  {user.role.replace("_", " ")} <ChevronDown size={13} />
+                </button>
+                {menu && (
+                  <div
+                    style={{
+                      position: "absolute",
+                      right: 25,
+                      top: 62,
+                      zIndex: 20,
+                      background: "white",
+                      padding: 8,
+                      borderRadius: 12,
+                      boxShadow: "0 10px 32px #10201622",
+                    }}>
+                    {[
+                      ["Dashboard", "/dashboard"],
+                      ...(user.role !== "CUSTOMER"
+                        ? [["Studio", "/studio"]]
+                        : []),
+                      ...(isCreator ? [["Desain Tersimpan", "/designs"]] : []),
+                      ...(user.role === "CUSTOMER"
+                        ? [["Pesanan Saya", "/orders"]]
+                        : []),
+                      ["Partner", "/partner"],
+                      ["Admin", "/admin"],
+                    ].map(([t, h]) => (
+                      <Link
+                        key={t}
+                        href={h}
+                        className="side-link"
+                        style={{display: "block"}}>
+                        {t}
+                      </Link>
+                    ))}
+                    <button className="side-link" onClick={logout}>
+                      Keluar
+                    </button>
+                  </div>
+                )}
+              </>
+            ) : (
+              <>
+                <button
+                  className="btn btn-light btn-sm"
+                  onClick={() => {
+                    setRegister(false);
+                    setAuth(true);
+                  }}>
+                  Masuk
+                </button>
+                <button
+                  className="btn btn-sm"
+                  onClick={() => {
+                    setRegister(true);
+                    setAuth(true);
+                  }}>
+                  Mulai gratis
+                </button>
+              </>
+            )}
+            <button
+              className="mobile-menu btn btn-light btn-sm"
+              onClick={() => setMenu(!menu)}>
+              <Menu size={16} />
+            </button>
+          </div>
+        </div>
+      </header>
+      {path === "/" && (
+        <main className="container">
+          <section className="hero">
+            <div className="hero-copy">
+              <div className="eyebrow">
+                Platform kreator lokal · dibuat di Indonesia
+              </div>
+              <h1>
+                Karyamu,
+                <br />
+                jadi <span style={{color: "#26734e"}}>merchandise.</span>
+              </h1>
+              <p>
+                Bikin produk custom, buka toko online, dan biarkan kami mengurus
+                produksinya. Tanpa stok, tanpa ribet.
+              </p>
+              <div style={{display: "flex", gap: 10, flexWrap: "wrap"}}>
+                <Link
+                  href="/studio"
+                  className="btn btn-lime"
+                  style={{
+                    display: "inline-flex",
+                    alignItems: "center",
+                    gap: 8,
+                  }}>
+                  Mulai mendesain <ArrowRight size={15} />
+                </Link>
+                <a href="#produk" className="btn btn-light">
+                  Jelajahi produk
+                </a>
+              </div>
+              <div
+                style={{
+                  display: "flex",
+                  gap: 17,
+                  marginTop: 27,
+                  fontSize: 11,
+                  color: "#68766b",
+                }}>
+                <span>✓ Tanpa minimum order</span>
+                <span>✓ Produksi lokal</span>
+              </div>
+            </div>
+            <div className="hero-art">
+              <div className="tee">✳</div>
+            </div>
+          </section>
+          <div id="produk" className="section-head">
+            <div>
+              <div className="eyebrow">Katalog pilihan</div>
+              <h2>Mulai dari produk favorit</h2>
+            </div>
+            <span className="muted">5 produk · siap kamu kreasikan</span>
+          </div>
+          <section className="grid-products">
+            {products.map((p) => (
+              <article className="card" key={p.id}>
+                <img className="product-img" src={p.image} alt={p.name} />
+                <div className="card-body">
+                  <span className="badge">{p.category}</span>
+                  <h3>{p.name}</h3>
+                  <p>{p.description}</p>
+                  <div className="product-foot">
+                    <span className="price">{money(p.basePrice)}</span>
+                    <Link
+                      href={`/studio?product=${p.id}`}
+                      className="btn btn-sm">
+                      Desain
+                    </Link>
+                  </div>
+                </div>
+              </article>
+            ))}
+          </section>
+          <section id="cara-kerja" className="feature-row">
+            {[
+              [
+                Palette,
+                "01",
+                "Desain sesukamu",
+                "Editor simpel untuk bikin artwork, coba komposisi, dan lihat hasilnya.",
+              ],
+              [
+                Store,
+                "02",
+                "Buka tokomu",
+                "Tentukan margin dan bagikan storefront-mu ke komunitas.",
+              ],
+              [
+                Truck,
+                "03",
+                "Kami produksi",
+                "Partner lokal mencetak, cek kualitas, dan kirim ke pembeli.",
+              ],
+            ].map(([Icon, n, t, d]: any) => (
+              <div className="feature" key={n}>
+                <div className="feature-icon">
+                  <Icon size={18} />
+                </div>
+                <div className="eyebrow" style={{marginTop: 14}}>
+                  LANGKAH {n}
+                </div>
+                <h3>{t}</h3>
+                <p>{d}</p>
+              </div>
+            ))}
+          </section>
+          <section
+            style={{
+              background: "#1d5f43",
+              color: "white",
+              padding: "33px 38px",
+              borderRadius: 20,
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "center",
+              gap: 20,
+              flexWrap: "wrap",
+            }}>
+            <div>
+              <div className="eyebrow" style={{color: "#c3e480"}}>
+                Untuk kreator Indonesia
+              </div>
+              <h2 style={{fontSize: 26, margin: "10px 0 5px"}}>
+                Satu ide, banyak kemungkinan.
+              </h2>
+              <p style={{color: "#d5e4d9", fontSize: 13, margin: 0}}>
+                Mulai toko tanpa modal stok di muka.
+              </p>
+            </div>
+            <button
+              className="btn btn-lime"
+              onClick={() =>
+                isCreator
+                  ? router.push("/dashboard")
+                  : (setRegister(true), setAuth(true))
+              }>
+              Buka tokomu <ArrowRight size={15} />
+            </button>
+          </section>
+        </main>
+      )}
+      {path === "/studio" &&
+        (user?.role === "CUSTOMER" ? (
+          <main className="container">
+            <div className="empty" style={{marginTop: 40}}>
+              Studio hanya dapat diakses oleh Creator. Akun Customer dapat
+              memilih merchandise dari katalog.{" "}
+              <Link className="btn btn-sm" href="/#produk">
+                Lihat katalog
+              </Link>
+            </div>
+          </main>
+        ) : (
+          <Studio
+            products={products}
+            user={user}
+            onLogin={() => setAuth(true)}
+          />
+        ))}
+      {path === "/designs" && (
+        <SavedDesigns user={user} onLogin={() => setAuth(true)} />
+      )}
+      {path === "/dashboard" && (
+        <main className="container">
+          <div className="page-head">
+            <div>
+              <div className="eyebrow">Creator studio</div>
+              <h1>Ringkasan tokomu</h1>
+              <div className="muted">Pantau performa dan kelola pesanan.</div>
+            </div>
+            <Link className="btn" href="/studio">
+              + Buat desain baru
+            </Link>
+          </div>
+          {!user ? (
+            <div className="empty">
+              Masuk sebagai Creator untuk membuka dashboard.{" "}
+              <button className="btn btn-sm" onClick={() => setAuth(true)}>
+                Masuk
+              </button>
+            </div>
+          ) : user.role !== "CREATOR" ? (
+            <div className="empty">
+              Dashboard ini khusus Creator. Akunmu memiliki role {user.role}.
+            </div>
+          ) : (
+            <>
+              <div className="metric-grid">
+                {[
+                  ["Total pesanan", dashboard?.orders ?? "—"],
+                  [
+                    "Total penjualan",
+                    dashboard ? money(dashboard.revenue) : "—",
+                  ],
+                  [
+                    "Estimasi profit",
+                    dashboard ? money(dashboard.profit) : "—",
+                  ],
+                ].map(([k, v]) => (
+                  <div className="metric" key={k}>
+                    <span>{k}</span>
+                    <strong>{v}</strong>
+                    <div className="muted" style={{fontSize: 11, marginTop: 5}}>
+                      Sejak toko dibuat
+                    </div>
+                  </div>
+                ))}
+              </div>
+              <div className="panel">
+                <h3>Penjualan & profit</h3>
+                <Chart data={dashboard?.chart || []} />
+              </div>
+              <div className="panel">
+                <div style={{display: "flex", justifyContent: "space-between"}}>
+                  <h3>Produk terlaris</h3>
+                  <Link
+                    href={
+                      dashboard?.store?.slug
+                        ? `/store/${dashboard.store.slug}`
+                        : "/store/ruang-karya"
+                    }
+                    className="muted">
+                    Lihat tokomu →
+                  </Link>
+                </div>
+                {dashboard?.best?.length ? (
+                  <table className="table">
+                    <thead>
+                      <tr>
+                        <th>Produk</th>
+                        <th>Terjual</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {dashboard.best.map((b: any) => (
+                        <tr key={b.product}>
+                          <td>{b.product}</td>
+                          <td>{b.sales}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                ) : (
+                  <div className="muted">
+                    Produk terlaris akan muncul setelah ada pesanan.
+                  </div>
+                )}
+              </div>
+              <div className="panel">
+                <h3>Pesanan terbaru</h3>
+                {dashboard?.recent?.length ? (
+                  <div style={{overflowX: "auto"}}>
+                    <table className="table">
+                      <thead>
+                        <tr>
+                          <th>Pesanan</th>
+                          <th>Tanggal</th>
+                          <th>Produk</th>
+                          <th>Status</th>
+                          <th>Profit</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {dashboard.recent.map((o: any) => (
+                          <tr key={o.id}>
+                            <td>{o.orderNumber}</td>
+                            <td>
+                              {new Date(o.createdAt).toLocaleDateString(
+                                "id-ID",
+                              )}
+                            </td>
+                            <td>{o.items[0]?.product.name}</td>
+                            <td>
+                              <span className="status">{o.status}</span>
+                            </td>
+                            <td>
+                              {money(
+                                o.items.reduce(
+                                  (s: number, i: any) =>
+                                    s + (i.unitPrice - i.baseCost) * i.quantity,
+                                  0,
+                                ),
+                              )}
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                ) : (
+                  <div className="empty">
+                    Belum ada pesanan. Publikasikan desain pertamamu agar mulai
+                    bisa terjual.
+                  </div>
+                )}
+              </div>
+            </>
+          )}
+        </main>
+      )}
+      {path === "/partner" && (
+        <PartnerPanelV2
+          user={user}
+          orders={orders}
+          onLogin={() => setAuth(true)}
+          onReload={() =>
+            fetch("/api/production")
+              .then((r) => r.json())
+              .then(setOrders)
+          }
+        />
+      )}
+      {path === "/orders" && (
+        <OrderTrackingV2
+          user={user}
+          orders={orders}
+          onLogin={() => setAuth(true)}
+        />
+      )}
+      {path === "/admin" && (
+        <AdminPanel user={user} onLogin={() => setAuth(true)} />
+      )}
+      {path.startsWith("/store/") && (
+        <main className="container">
+          {store?.id ? (
+            <>
+              <section className="store-hero">
+                <div className="eyebrow">Storefront kreator</div>
+                <h1 style={{fontSize: 37, margin: "11px 0"}}>{store.name}</h1>
+                <p className="muted">
+                  {store.bio || "Koleksi pilihan dari kreator lokal."}
+                </p>
+                <span className="badge">bikinmerch.id/store/{store.slug}</span>
+                {store.user?.name && (
+                  <div className="muted" style={{marginTop: 10}}>
+                    Dibuat oleh {store.user.name}
+                  </div>
+                )}
+              </section>
+              <div className="section-head">
+                <div>
+                  <div className="eyebrow">Koleksi</div>
+                  <h2>Produk dari toko ini</h2>
+                </div>
+              </div>
+              <section className="grid-products">
+                {store.products.map((sp: ShopItem) => (
+                  <article className="card" key={sp.id}>
+                    <div style={{position: "relative"}}>
+                      <img
+                        className="product-img"
+                        src={sp.product.image}
+                        alt={sp.title}
+                      />
+                      {sp.design?.preview && (
+                        <img
+                          src={sp.design.preview}
+                          style={{
+                            position: "absolute",
+                            width: "40%",
+                            height: "38%",
+                            objectFit: "contain",
+                            left: "30%",
+                            top: "25%",
+                          }}
+                          alt="Desain produk"
+                        />
+                      )}
+                    </div>
+                    <div className="card-body">
+                      <span className="badge">{sp.product.name}</span>
+                      <h3>{sp.title}</h3>
+                      <div className="product-foot" style={{marginTop: 15}}>
+                        <span className="price">{money(sp.price)}</span>
+                        <button
+                          className="btn btn-sm"
+                          disabled={Boolean(user && user.role !== "CUSTOMER")}
+                          onClick={() => {
+                            if (!user) {
+                              setErr("");
+                              setAuth(true);
+                              return;
+                            }
+                            if (user.role !== "CUSTOMER") return;
+                            setErr("");
+                            setCheckout(sp);
+                          }}>
+                          {user && user.role !== "CUSTOMER"
+                            ? "Khusus Customer"
+                            : "Beli sekarang"}
+                        </button>
+                      </div>
+                    </div>
+                  </article>
+                ))}
+              </section>
+              {!store.products.length && (
+                <div className="empty">
+                  Toko ini belum mempublikasikan produk.
+                </div>
+              )}
+            </>
+          ) : (
+            <div className="empty" style={{marginTop: 40}}>
+              {store === null ? "Memuat toko…" : "Toko tidak ditemukan."}
+            </div>
+          )}
+        </main>
+      )}
+      <footer className="footer">
+        <div
+          className="container"
+          style={{
+            display: "flex",
+            justifyContent: "space-between",
+            gap: 15,
+            flexWrap: "wrap",
+          }}>
+          <span>
+            <b className="brand" style={{fontSize: 15}}>
+              Bikin<span>Merch</span>
+            </b>{" "}
+            · Karyamu, jadi merchandise.
+          </span>
+          <span>Produksi lokal, karya kreator Indonesia.</span>
+          <span>Roadmap: payment gateway · logistik · API</span>
+        </div>
+      </footer>
+      {auth && (
+        <div
+          className="modal-backdrop"
+          onMouseDown={(e) => e.target === e.currentTarget && setAuth(false)}>
+          <form className="modal" onSubmit={authSubmit}>
+            <div
+              style={{
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "center",
+              }}>
+              <div>
+                <div className="eyebrow">BikinMerch</div>
+                <h2>
+                  {register ? "Buat akun baru" : "Selamat datang kembali"}
+                </h2>
+                <div className="muted">
+                  {register
+                    ? "Mulai jual karyamu tanpa stok."
+                    : "Masuk untuk melanjutkan."}
+                </div>
+              </div>
+              <button
+                type="button"
+                className="btn btn-light btn-sm"
+                onClick={() => setAuth(false)}>
+                <X size={16} />
+              </button>
+            </div>
+            {register && (
+              <>
+                <label className="label">Nama</label>
+                <input
+                  className="input"
+                  name="name"
+                  required
+                  placeholder="Nama lengkap"
+                />
+              </>
+            )}
+            <label className="label">Email</label>
+            <input
+              className="input"
+              name="email"
+              type="email"
+              required
+              placeholder="kamu@email.com"
+            />
+            <label className="label">Kata sandi</label>
+            <input
+              className="input"
+              name="password"
+              type="password"
+              required
+              minLength={8}
+              placeholder="Minimal 8 karakter"
+            />
+            {register && (
+              <>
+                <label className="label">Saya ingin bergabung sebagai</label>
+                <select className="input" name="role">
+                  <option value="CREATOR">
+                    Creator — membuat dan menjual desain
+                  </option>
+                  <option value="CUSTOMER">
+                    Customer — membeli merchandise
+                  </option>
+                </select>
+              </>
+            )}
+            {err && <div className="error">{err}</div>}
+            <button
+              className="btn"
+              style={{width: "100%", marginTop: 18}}
+              disabled={busy}>
+              {busy ? "Memproses…" : register ? "Daftar gratis" : "Masuk"}
+            </button>
+            <div
+              className="muted"
+              style={{textAlign: "center", marginTop: 14, fontSize: 12}}>
+              {register ? "Sudah punya akun?" : "Belum punya akun?"}{" "}
+              <button
+                type="button"
+                style={{
+                  color: "#176b4d",
+                  fontWeight: 700,
+                  border: 0,
+                  background: "none",
+                }}
+                onClick={() => {
+                  setRegister(!register);
+                  setErr("");
+                }}>
+                {register ? "Masuk" : "Daftar"}
+              </button>
+            </div>
+            <p
+              style={{
+                borderTop: "1px solid #eee",
+                paddingTop: 12,
+                marginTop: 15,
+                fontSize: 10,
+                color: "#89918a",
+                lineHeight: 1.6,
+              }}>
+              Akun demo tersedia setelah seed: creator@bikinmerch.id,
+              customer@bikinmerch.id, admin@bikinmerch.id,
+              partner@bikinmerch.id. Password: bikinmerch123
+            </p>
+          </form>
+        </div>
+      )}
+      {checkout && (
+        <div
+          className="modal-backdrop"
+          onMouseDown={(e) =>
+            e.target === e.currentTarget && setCheckout(null)
+          }>
+          <form className="modal" onSubmit={checkoutSubmit}>
+            <div style={{display: "flex", justifyContent: "space-between"}}>
+              <div>
+                <div className="eyebrow">Checkout aman</div>
+                <h2>Pesan produk</h2>
+              </div>
+              <button
+                type="button"
+                className="btn btn-light btn-sm"
+                onClick={() => setCheckout(null)}>
+                <X size={16} />
+              </button>
+            </div>
+            <div
+              style={{
+                background: "#f4f6f2",
+                padding: 13,
+                borderRadius: 12,
+                marginTop: 16,
+              }}>
+              <b>{checkout.title}</b>
+              <div className="muted">
+                {checkout.product.name} · Mock payment
+              </div>
+              <strong style={{display: "block", marginTop: 8}}>
+                {money(checkout.price)}
+              </strong>
+            </div>
+            <label className="label">Alamat pengiriman</label>
+            <textarea
+              className="input"
+              required
+              rows={3}
+              value={address}
+              onChange={(e) => setAddress(e.target.value)}
+              placeholder="Nama jalan, kecamatan, kota, kode pos"
+            />
+            {err && <div className="error">{err}</div>}
+            <button
+              className="btn"
+              disabled={busy}
+              style={{width: "100%", marginTop: 18}}>
+              {busy ? "Membuat pesanan…" : "Bayar sekarang · Mock"}
+            </button>
+            <p className="muted" style={{fontSize: 10, lineHeight: 1.5}}>
+              Pembayaran simulasi untuk demo. Pesanan akan langsung berstatus
+              Paid dan dikirim ke partner produksi.
+            </p>
+          </form>
+        </div>
+      )}
+    </>
+  );
+}
+function PageSkeleton({
+  kind = "page",
+  embedded = false,
+}: {
+  kind?: string;
+  embedded?: boolean;
+}) {
+  const studio = kind.includes("studio"),
+    cards = kind === "/" || kind.includes("store") || kind.includes("designs"),
+    table =
+      kind.includes("orders") ||
+      kind.includes("partner") ||
+      kind.includes("admin");
+  return (
+    <div
+      className={`skeleton-page${embedded ? " embedded" : ""}`}
+      aria-busy="true"
+      aria-label="Memuat data">
+      <div className="skeleton-header">
+        <div className="sk sk-logo" />
+        <div className="sk-nav">
+          <i className="sk" />
+          <i className="sk" />
+          <i className="sk" />
+        </div>
+        <div className="sk sk-user" />
+      </div>
+      {studio ? (
+        <div className="skeleton-studio">
+          <aside>
+            <i className="sk sk-line wide" />
+            <i className="sk sk-line" />
+            {Array.from({length: 6}, (_, i) => (
+              <i className="sk sk-item" key={i} />
+            ))}
+          </aside>
+          <section>
+            <i className="sk sk-toolbar" />
+            <i className="sk sk-canvas" />
+          </section>
+          <aside>
+            <i className="sk sk-line wide" />
+            {Array.from({length: 5}, (_, i) => (
+              <i className="sk sk-field" key={i} />
+            ))}
+          </aside>
+        </div>
+      ) : (
+        <main className="skeleton-content">
+          <div className="sk sk-kicker" />
+          <div className="sk sk-title" />
+          <div className="sk sk-subtitle" />
+          {cards && (
+            <div className="skeleton-cards">
+              {Array.from({length: 6}, (_, i) => (
+                <div className="skeleton-card" key={i}>
+                  <i className="sk sk-image" />
+                  <i className="sk sk-line wide" />
+                  <i className="sk sk-line" />
+                </div>
+              ))}
+            </div>
+          )}
+          {table && (
+            <div className="skeleton-table">
+              <i className="sk sk-table-head" />
+              {Array.from({length: 6}, (_, i) => (
+                <i className="sk sk-table-row" key={i} />
+              ))}
+            </div>
+          )}
+          {!cards && !table && (
+            <>
+              <div className="skeleton-metrics">
+                {[1, 2, 3].map((i) => (
+                  <i className="sk" key={i} />
+                ))}
+              </div>
+              <i className="sk sk-panel" />
+            </>
+          )}
+        </main>
+      )}
+    </div>
+  );
+}
+function Chart({data}: {data: any[]}) {
+  const [Ready, setReady] = useState(false);
+  useEffect(() => setReady(true), []);
+  if (!Ready) return <div style={{height: 245}} />;
+  const Recharts = require("recharts");
+  const {
+    ResponsiveContainer,
+    LineChart,
+    Line,
+    XAxis,
+    YAxis,
+    Tooltip,
+    CartesianGrid,
+    Legend,
+  } = Recharts;
+  return (
+    <div style={{height: 250}}>
+      <ResponsiveContainer width="100%" height="100%">
+        <LineChart data={data}>
+          <CartesianGrid strokeDasharray="3 3" vertical={false} />
+          <XAxis dataKey="date" tick={{fontSize: 10}} />
+          <YAxis tick={{fontSize: 10}} />
+          <Tooltip formatter={(v: any) => money(Number(v))} />
+          <Legend />
+          <Line
+            type="monotone"
+            dataKey="revenue"
+            name="Penjualan"
+            stroke="#176b4d"
+            strokeWidth={3}
+          />
+          <Line
+            type="monotone"
+            dataKey="profit"
+            name="Profit"
+            stroke="#a5c93d"
+            strokeWidth={3}
+          />
+        </LineChart>
+      </ResponsiveContainer>
+    </div>
+  );
+}
+function SavedDesigns({
+  user,
+  onLogin,
+}: {
+  user: User | null;
+  onLogin: () => void;
+}) {
+  const [designs, setDesigns] = useState<any[] | null>(null),
+    [error, setError] = useState(""),
+    [publishing, setPublishing] = useState(""),
+    [storefront, setStorefront] = useState<any>(null);
+  const load = useCallback(async () => {
+    setError("");
+    const [response, storeResponse] = await Promise.all([
+      fetch("/api/designs"),
+      fetch("/api/store"),
+    ]);
+    const [data, storeData] = await Promise.all([
+      response.json(),
+      storeResponse.json(),
+    ]);
+    if (!response.ok) {
+      setError(data.error || "Desain gagal dimuat.");
+      setDesigns([]);
+      return;
+    }
+    setDesigns(data);
+    setStorefront(storeResponse.ok ? storeData : null);
+  }, []);
+  useEffect(() => {
+    if (user?.role === "CREATOR") load();
+    else setDesigns([]);
+  }, [user, load]);
+  async function remove(id: string, name: string) {
+    const confirmation = await Swal.fire({
+      icon: "warning",
+      title: "Hapus desain?",
+      text: `Desain “${name}” akan dihapus permanen.`,
+      showCancelButton: true,
+      confirmButtonText: "Hapus",
+      cancelButtonText: "Batal",
+      confirmButtonColor: "#b43f3f",
+    });
+    if (!confirmation.isConfirmed) return;
+    const response = await fetch(`/api/designs?id=${encodeURIComponent(id)}`, {
+      method: "DELETE",
+    });
+    const data = await response.json();
+    if (!response.ok) {
+      setError(data.error || "Desain gagal dihapus.");
+      return;
+    }
+    setDesigns((current) => current?.filter((item) => item.id !== id) || []);
+  }
+  async function publish(design: any) {
+    const listing = design.storeProducts?.[0];
+    const suggestedPrice = listing?.price || design.product.basePrice + 15000;
+    const priceDialog = await Swal.fire({
+      title: listing ? "Perbarui produk" : "Publikasikan produk",
+      text: `Tentukan harga jual untuk “${design.name}”. Harga dasar: ${money(
+        design.product.basePrice,
+      )}.`,
+      input: "number",
+      inputValue: suggestedPrice,
+      inputAttributes: {
+        min: String(design.product.basePrice + 1),
+        step: "1000",
+        inputmode: "numeric",
+      },
+      showCancelButton: true,
+      confirmButtonText: listing ? "Perbarui" : "Publikasikan",
+      cancelButtonText: "Batal",
+      confirmButtonColor: "#176b4d",
+      showLoaderOnConfirm: true,
+      preConfirm: (value) => {
+        const price = Number(value);
+        if (!Number.isInteger(price) || price <= design.product.basePrice) {
+          Swal.showValidationMessage(
+            "Harga jual harus lebih tinggi dari harga dasar produk.",
+          );
+          return false;
+        }
+        return price;
+      },
+      allowOutsideClick: () => !Swal.isLoading(),
+    });
+    if (!priceDialog.isConfirmed) return;
+    const price = Number(priceDialog.value);
+
+    setError("");
+    setPublishing(design.id);
+    try {
+      const response = await fetch("/api/store", {
+        method: "POST",
+        headers: {"Content-Type": "application/json"},
+        body: JSON.stringify({
+          designId: design.id,
+          title: design.name,
+          price,
+        }),
+      });
+      const data = await response.json();
+      if (!response.ok)
+        throw new Error(data.error || "Produk gagal dipublikasikan.");
+      await load();
+      await Swal.fire({
+        icon: "success",
+        title: "Produk dipublikasikan",
+        text: `Produk tersedia di ${window.location.origin}${data.storefrontUrl}`,
+        confirmButtonText: "Selesai",
+        confirmButtonColor: "#176b4d",
+      });
+    } catch (publishError) {
+      const message =
+        publishError instanceof Error
+          ? publishError.message
+          : "Produk gagal dipublikasikan.";
+      setError(message);
+      await Swal.fire({
+        icon: "error",
+        title: "Publikasi gagal",
+        text: message,
+        confirmButtonColor: "#176b4d",
+      });
+    } finally {
+      setPublishing("");
+    }
+  }
+  return (
+    <main className="container">
+      <div className="page-head">
+        <div>
+          <div className="eyebrow">Creator studio</div>
+          <h1>Desain tersimpan</h1>
+          {storefront?.slug && (
+            <Link
+              className="saved-design-store-link"
+              href={`/store/${storefront.slug}`}>
+              Lihat toko: bikinmerch.id/@{storefront.slug} →
+            </Link>
+          )}
+          <div className="muted">Edit, lanjutkan, atau hapus desainmu.</div>
+        </div>
+        <Link className="btn" href="/studio">
+          + Buat desain baru
+        </Link>
+      </div>
+      {!user ? (
+        <div className="empty">
+          Masuk sebagai Creator untuk melihat desain tersimpan.{" "}
+          <button className="btn btn-sm" onClick={onLogin}>
+            Masuk
+          </button>
+        </div>
+      ) : user.role !== "CREATOR" ? (
+        <div className="empty">
+          Halaman desain tersimpan hanya tersedia untuk akun Creator.
+        </div>
+      ) : designs === null ? (
+        <div className="empty">Memuat desain…</div>
+      ) : (
+        <>
+          {error && (
+            <div className="error" style={{marginBottom: 14}}>
+              {error}
+            </div>
+          )}
+          {designs.length === 0 ? (
+            <div className="empty">
+              Belum ada desain tersimpan.{" "}
+              <Link className="btn btn-sm" href="/studio">
+                Buat desain pertama
+              </Link>
+            </div>
+          ) : (
+            <section className="saved-design-grid">
+              {designs.map((design) => (
+                <article className="saved-design-card" key={design.id}>
+                  <div className="saved-design-preview">
+                    {design.preview ? (
+                      <img
+                        src={design.preview}
+                        alt={`Preview ${design.name}`}
+                      />
+                    ) : (
+                      <img
+                        src={design.product.image}
+                        alt={design.product.name}
+                      />
+                    )}
+                    <span className="badge">
+                      {design.storeProducts?.length
+                        ? "Dipublikasikan"
+                        : "Draft"}
+                    </span>
+                  </div>
+                  <div className="saved-design-body">
+                    <div className="eyebrow">{design.product.name}</div>
+                    <h2>{design.name}</h2>
+                    <p className="muted">
+                      Diperbarui{" "}
+                      {new Date(design.updatedAt).toLocaleString("id-ID", {
+                        dateStyle: "medium",
+                        timeStyle: "short",
+                      })}
+                    </p>
+                    <div className="saved-design-actions">
+                      <Link
+                        className="btn btn-sm saved-design-edit"
+                        title="Edit desain"
+                        aria-label="Edit desain"
+                        href={`/studio?product=${design.productId}&design=${design.id}`}>
+                        Edit Desain
+                      </Link>
+                      <button
+                        className="btn btn-sm saved-design-publish"
+                        title={
+                          design.storeProducts?.some(
+                            (item: any) => item.active,
+                          )
+                            ? "Perbarui produk"
+                            : "Publikasikan ke storefront"
+                        }
+                        aria-label={
+                          design.storeProducts?.some(
+                            (item: any) => item.active,
+                          )
+                            ? "Perbarui produk"
+                            : "Publikasikan ke storefront"
+                        }
+                        disabled={publishing === design.id}
+                        onClick={() => publish(design)}>
+                        {publishing === design.id
+                          ? "Mempublikasikan…"
+                          : design.storeProducts?.some(
+                                (item: any) => item.active,
+                              )
+                            ? "Perbarui produk"
+                            : "Publikasikan ke storefront"}
+                      </button>
+                      <button
+                        className="btn btn-light btn-sm saved-design-delete"
+                        title="Hapus desain"
+                        aria-label="Hapus desain"
+                        onClick={() => remove(design.id, design.name)}
+                        disabled={Boolean(design.storeProducts?.length)}>
+                        Hapus
+                      </button>
+                    </div>
+                    {design.storeProducts?.length > 0 && (
+                      <small className="muted">
+                        Desain yang sudah dipublikasikan tidak dapat dihapus.
+                      </small>
+                    )}
+                  </div>
+                </article>
+              ))}
+            </section>
+          )}
+        </>
+      )}
+    </main>
+  );
+}
+function OrderTrackingV2({
+  user,
+  orders,
+  onLogin,
+}: {
+  user: User | null;
+  orders: any[];
+  onLogin: () => void;
+}) {
+  const steps = [
+    "PAID",
+    "QUEUED",
+    "PRINTING",
+    "QC",
+    "PACKED",
+    "SHIPPED",
+    "DELIVERED",
+  ];
+  const allowed = user?.role === "CUSTOMER";
+  return (
+    <main className="container">
+      <div className="page-head">
+        <div>
+          <div className="eyebrow">Pesananmu</div>
+          <h1>Lacak pesanan</h1>
+          <div className="muted">
+            Perjalanan merchandise dari pembayaran sampai tujuan.
+          </div>
+        </div>
+        <Link className="btn" href="/#produk">
+          Lihat katalog
+        </Link>
+      </div>
+      {!user ? (
+        <div className="empty">
+          Masuk untuk melihat pesananmu.{" "}
+          <button className="btn btn-sm" onClick={onLogin}>
+            Masuk
+          </button>
+        </div>
+      ) : !allowed ? (
+        <div className="empty">
+          Halaman Pesanan Saya hanya tersedia untuk akun Customer.
+        </div>
+      ) : !orders.length ? (
+        <div className="empty">
+          Belum ada pesanan. Pilih merchandise dari katalog produk.
+        </div>
+      ) : (
+        orders.map((o) => {
+          const index = steps.indexOf(o.status);
+          return (
+            <article key={o.id} className="panel" style={{marginBottom: 14}}>
+              <div
+                style={{
+                  display: "flex",
+                  justifyContent: "space-between",
+                  gap: 10,
+                  flexWrap: "wrap",
+                }}>
+                <div>
+                  <div className="eyebrow">{o.orderNumber}</div>
+                  <strong>
+                    {o.items
+                      .map(
+                        (item: any) =>
+                          `${item.product.name}${item.variantName ? ` · ${item.variantName}` : ""} × ${item.quantity}`,
+                      )
+                      .join(", ")}
+                  </strong>
+                  <div className="muted" style={{marginTop: 5}}>
+                    {new Date(o.createdAt).toLocaleString("id-ID")} ·{" "}
+                    {money(o.total)}
+                  </div>
+                </div>
+                <span className="status">{o.status}</span>
+              </div>
+              <div
+                style={{
+                  display: "grid",
+                  gridTemplateColumns: "repeat(7,minmax(65px,1fr))",
+                  gap: 4,
+                  marginTop: 22,
+                  overflowX: "auto",
+                }}>
+                {steps.map((step, i) => (
+                  <div
+                    key={step}
+                    style={{
+                      textAlign: "center",
+                      opacity: i <= index ? 1 : 0.38,
+                    }}>
+                    <div
+                      style={{
+                        height: 5,
+                        borderRadius: 5,
+                        background: i <= index ? "#176b4d" : "#e5e9e2",
+                        marginBottom: 7,
+                      }}
+                    />
+                    <div
+                      style={{
+                        fontSize: 9,
+                        fontWeight: i === index ? 800 : 500,
+                        color: i <= index ? "#176b4d" : "#79817b",
+                      }}>
+                      {step}
+                    </div>
+                  </div>
+                ))}
+              </div>
+              <div className="muted" style={{marginTop: 12, fontSize: 11}}>
+                Dikirim ke: {o.shippingAddress}
+              </div>
+            </article>
+          );
+        })
+      )}
+    </main>
+  );
+}
+function PartnerPanelV2({
+  user,
+  orders,
+  onLogin,
+  onReload,
+}: {
+  user: User | null;
+  orders: any[];
+  onLogin: () => void;
+  onReload: () => void;
+}) {
+  const [selected, setSelected] = useState<any>(null);
+  async function setStatus(id: string, status: string) {
+    const response = await fetch("/api/production", {
+      method: "PATCH",
+      headers: {"Content-Type": "application/json"},
+      body: JSON.stringify({id, status}),
+    });
+    if (!response.ok) alert((await response.json()).error);
+    else onReload();
+  }
+  const progression = [
+    "QUEUED",
+    "PRINTING",
+    "QC",
+    "PACKED",
+    "SHIPPED",
+    "DELIVERED",
+  ];
+  return (
+    <>
+      <main className="container">
+        <div className="page-head">
+          <div>
+            <div className="eyebrow">Print partner portal</div>
+            <h1>Antrean produksi</h1>
+            <div className="muted">
+              Periksa file desain, export artwork, dan perbarui tahap produksi.
+            </div>
+          </div>
+        </div>
+        {!user ? (
+          <div className="empty">
+            Masuk menggunakan akun Print Partner.{" "}
+            <button className="btn btn-sm" onClick={onLogin}>
+              Masuk
+            </button>
+          </div>
+        ) : user.role !== "PRINT_PARTNER" && user.role !== "ADMIN" ? (
+          <div className="empty">Akunmu bukan Print Partner.</div>
+        ) : orders.length === 0 ? (
+          <div className="empty">Belum ada order produksi.</div>
+        ) : (
+          <div className="panel">
+            <table className="table">
+              <thead>
+                <tr>
+                  <th>Order</th>
+                  <th>Customer</th>
+                  <th>Produk & varian</th>
+                  <th>Desain</th>
+                  <th>Status produksi</th>
+                </tr>
+              </thead>
+              <tbody>
+                {orders.map((order) => (
+                  <tr key={order.id}>
+                    <td>
+                      <strong>{order.order.orderNumber}</strong>
+                      <div
+                        className="muted"
+                        style={{fontSize: 10, marginTop: 4}}>
+                        {order.order.items[0]?.quantity || 1} pcs
+                      </div>
+                    </td>
+                    <td>{order.order.customer.name}</td>
+                    <td>
+                      {order.order.items[0]?.product.name}
+                      <div
+                        className="muted"
+                        style={{fontSize: 10, marginTop: 4}}>
+                        {order.order.items[0]?.variantName || "Varian standar"}
+                      </div>
+                    </td>
+                    <td>
+                      <button
+                        className="btn btn-light btn-sm"
+                        onClick={() => setSelected(order)}>
+                        View design
+                      </button>
+                    </td>
+                    <td>
+                      <select
+                        className="input"
+                        value={order.status}
+                        onChange={(event) =>
+                          setStatus(order.id, event.target.value)
+                        }
+                        style={{padding: "7px", minWidth: 130}}>
+                        {progression.map((status) => (
+                          <option key={status}>{status}</option>
+                        ))}
+                      </select>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </main>
+      {selected && (
+        <PartnerDesignView
+          production={selected}
+          onClose={() => setSelected(null)}
+        />
+      )}
+    </>
+  );
+}
+function AdminPanel({user, onLogin}: {user: User | null; onLogin: () => void}) {
+  const [data, setData] = useState<any>(null);
+  const load = () =>
+    fetch("/api/admin")
+      .then((r) => r.json())
+      .then(setData);
+  useEffect(() => {
+    if (user?.role === "ADMIN") load();
+  }, [user]);
+  async function toggle(kind: string, id: string, active: boolean) {
+    const r = await fetch("/api/admin", {
+      method: "PATCH",
+      headers: {"Content-Type": "application/json"},
+      body: JSON.stringify({kind, id, active}),
+    });
+    if (!r.ok) alert((await r.json()).error);
+    else load();
+  }
+  return (
+    <main className="container">
+      <div className="page-head">
+        <div>
+          <div className="eyebrow">BikinMerch operations</div>
+          <h1>Admin dashboard</h1>
+          <div className="muted">Ringkasan platform dan operasional.</div>
+        </div>
+      </div>
+      {!user ? (
+        <div className="empty">
+          Masuk sebagai Admin untuk melihat data platform.{" "}
+          <button className="btn btn-sm" onClick={onLogin}>
+            Masuk
+          </button>
+        </div>
+      ) : user.role !== "ADMIN" ? (
+        <div className="empty">Akunmu bukan Admin.</div>
+      ) : (
+        <>
+          <div className="metric-grid">
+            {[
+              ["Pengguna", data?.users?.length ?? "—"],
+              ["Produk katalog", data?.products?.length ?? "—"],
+              ["Pesanan", data?.orders?.length ?? "—"],
+            ].map(([k, v]) => (
+              <div className="metric" key={k}>
+                <span>{k}</span>
+                <strong>{v}</strong>
+              </div>
+            ))}
+          </div>
+          <div className="panel">
+            <h3>Produk katalog</h3>
+            <table className="table">
+              <thead>
+                <tr>
+                  <th>Produk</th>
+                  <th>Kategori</th>
+                  <th>Harga dasar</th>
+                  <th>Varian</th>
+                  <th>Status</th>
+                  <th>Aksi</th>
+                </tr>
+              </thead>
+              <tbody>
+                {data?.products?.map((p: any) => (
+                  <tr key={p.id}>
+                    <td>{p.name}</td>
+                    <td>{p.category}</td>
+                    <td>{money(p.basePrice)}</td>
+                    <td>{p._count.variants}</td>
+                    <td>{p.active ? "Aktif" : "Nonaktif"}</td>
+                    <td>
+                      <button
+                        className="btn btn-light btn-sm"
+                        onClick={() => toggle("product", p.id, !p.active)}>
+                        {p.active ? "Nonaktifkan" : "Aktifkan"}
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+          <div className="panel">
+            <h3>Pesanan terbaru</h3>
+            <table className="table">
+              <thead>
+                <tr>
+                  <th>Order</th>
+                  <th>Pembeli</th>
+                  <th>Nilai</th>
+                  <th>Status</th>
+                </tr>
+              </thead>
+              <tbody>
+                {data?.orders?.map((o: any) => (
+                  <tr key={o.id}>
+                    <td>{o.orderNumber}</td>
+                    <td>{o.customer.name}</td>
+                    <td>{money(o.total)}</td>
+                    <td>
+                      <span className="status">{o.status}</span>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+          <div className="panel">
+            <h3>Print partner</h3>
+            <table className="table">
+              <thead>
+                <tr>
+                  <th>Bisnis</th>
+                  <th>Kontak</th>
+                  <th>Kota</th>
+                  <th>Kapasitas</th>
+                  <th>Status</th>
+                  <th>Aksi</th>
+                </tr>
+              </thead>
+              <tbody>
+                {data?.partners?.map((p: any) => (
+                  <tr key={p.id}>
+                    <td>{p.businessName}</td>
+                    <td>{p.user.name}</td>
+                    <td>{p.city}</td>
+                    <td>{p.capacity}</td>
+                    <td>{p.active ? "Aktif" : "Nonaktif"}</td>
+                    <td>
+                      <button
+                        className="btn btn-light btn-sm"
+                        onClick={() => toggle("partner", p.id, !p.active)}>
+                        {p.active ? "Nonaktifkan" : "Aktifkan"}
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+          <div className="panel">
+            <h3>Pengguna</h3>
+            <table className="table">
+              <thead>
+                <tr>
+                  <th>Nama</th>
+                  <th>Email</th>
+                  <th>Role</th>
+                  <th>Bergabung</th>
+                </tr>
+              </thead>
+              <tbody>
+                {data?.users?.map((u: any) => (
+                  <tr key={u.id}>
+                    <td>{u.name}</td>
+                    <td>{u.email}</td>
+                    <td>{u.role}</td>
+                    <td>{new Date(u.createdAt).toLocaleDateString("id-ID")}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </>
+      )}
+    </main>
+  );
+}
