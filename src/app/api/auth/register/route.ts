@@ -37,6 +37,7 @@ export async function POST(req: NextRequest) {
       role: user.role,
     });
     const res = NextResponse.json({
+      ...(req.headers.get("x-bikinmerch-client") === "flutter-native" ? {token} : {}),
       user: {id: user.id, name: user.name, email: user.email, role: user.role},
     });
     res.cookies.set("bm_session", token, {

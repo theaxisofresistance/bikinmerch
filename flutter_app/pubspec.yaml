@@ -1,0 +1,29 @@
+name: bikinmerch
+description: BikinMerch Flutter — platform merchandise kreator Indonesia.
+publish_to: none
+version: 1.0.0+1
+
+environment:
+  sdk: ^3.10.0
+
+dependencies:
+  flutter:
+    sdk: flutter
+  flutter_localizations:
+    sdk: flutter
+  http: ^1.6.0
+  flutter_secure_storage: ^10.0.0
+  shared_preferences: ^2.5.4
+  file_selector: ^1.1.0
+  share_plus: ^12.0.1
+  web: ^1.1.1
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^6.0.0
+
+flutter:
+  uses-material-design: true
+  assets:
+    - assets/studio/

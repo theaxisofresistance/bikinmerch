@@ -1,5 +1,9 @@
 # BikinMerch MVP
 
+Versi Flutter (Android, iOS, dan Web) tersedia di [`flutter_app`](flutter_app/README.md).
+Versi tersebut memakai API Next.js dan database yang sama. Panduan menjalankan, konfigurasi alamat API,
+dan daftar fitur tersedia di README folder tersebut.
+
 Platform print-on-demand lokal untuk kreator Indonesia. Implementasi ini mencakup login multi-role, katalog produk, editor desain Fabric.js, penyimpanan desain, storefront, checkout dengan mock payment, order tracking, dashboard Creator, Admin, dan Print Partner.
 
 ## Prasyarat
