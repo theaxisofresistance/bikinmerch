@@ -1,32 +1,35 @@
 "use client";
+import {drawElements,type DesignElement} from "@/lib/design-elements";
+import {drawMovableText,type TextDesign} from "@/lib/design-text";
+import {drawStrokes,type PenStroke} from "@/lib/freehand";
 
 import {Download,Grid3X3,Maximize2,Rotate3D,X} from "lucide-react";
 import {useEffect,useMemo,useRef,useState} from "react";
 
 type Side="front"|"back";
-type Design={enabled:boolean;template:string;title:string;subtitle:string;detail:string;ink:string;accent:string;font:string;position:string;scale:number;logo:string|null};
+type Design=TextDesign & {elements?:DesignElement[];strokes?:PenStroke[];enabled:boolean;template:string;title:string;subtitle:string;detail:string;ink:string;accent:string;font:string;position:string;scale:number;logo:string|null};
 type Project={fit:string;shirt:string;activeSide:Side;sides:Record<Side,Design>};
 
 const styles:Record<string,string>={weekend:"arch",afterhours:"stack",ordinary:"minimal",running:"sport",bloom:"serif",good:"badge"};
 const family=(design:Design)=>design.font==="serif"?"Georgia, serif":design.font==="sans"?"Arial, sans-serif":"Arial Narrow, Impact, sans-serif";
-function fitText(ctx:CanvasRenderingContext2D,text:string,y:number,size:number,maxWidth:number,font:string,weight=800){ctx.font=`${weight} ${size}px ${font}`;const measured=ctx.measureText(text).width;if(measured>maxWidth)ctx.font=`${weight} ${size*maxWidth/measured}px ${font}`;ctx.fillText(text,0,y)}
-function renderArtwork(canvas:HTMLCanvasElement,design:Design,logo?:HTMLImageElement){canvas.width=2400;canvas.height=3000;const ctx=canvas.getContext("2d")!;ctx.clearRect(0,0,canvas.width,canvas.height);if(!design.enabled)return;ctx.save();ctx.translate(1200,1500);ctx.scale(4,4);ctx.textAlign="center";ctx.textBaseline="middle";ctx.fillStyle=design.ink;const font=family(design),style=styles[design.template]||"arch";
- if(style==="arch"){ctx.strokeStyle=design.ink;ctx.lineWidth=3;ctx.beginPath();ctx.arc(0,-40,188,Math.PI*1.06,Math.PI*1.94);ctx.stroke();fitText(ctx,design.title,-95,103,530,font);fitText(ctx,design.subtitle,10,110,490,font);ctx.fillStyle=design.accent;ctx.fillRect(-165,83,330,8);ctx.fillStyle=design.ink;fitText(ctx,design.detail,142,20,470,"Arial",600)}
- if(style==="stack"){ctx.fillStyle=design.accent;ctx.save();ctx.rotate(-.06);ctx.fillRect(-246,-183,492,122);ctx.restore();ctx.fillStyle=design.ink;fitText(ctx,design.title,-127,126,470,font);fitText(ctx,design.subtitle,0,136,520,font);fitText(ctx,design.detail,127,21,475,"Arial",600);ctx.fillRect(-215,79,430,3)}
- if(style==="minimal"){fitText(ctx,design.title,-50,98,510,design.font==="condensed"?"Georgia":font,400);ctx.fillRect(-27,36,54,3);fitText(ctx,design.subtitle,95,23,470,"Arial",600);fitText(ctx,design.detail,142,17,440,"Arial",400)}
- if(style==="sport"){ctx.strokeStyle=design.ink;ctx.lineWidth=5;ctx.strokeRect(-244,-193,488,370);ctx.save();ctx.transform(1,0,-.14,1,0,0);fitText(ctx,design.title,-102,112,420,font);fitText(ctx,design.subtitle,0,94,420,font);ctx.restore();ctx.fillStyle=design.accent;ctx.fillRect(-244,76,488,101);ctx.fillStyle=design.ink;fitText(ctx,design.detail,127,20,447,"Arial",700)}
- if(style==="serif"){ctx.strokeStyle=design.accent;ctx.lineWidth=3;ctx.beginPath();ctx.ellipse(0,-26,236,193,-.2,0,Math.PI*2);ctx.stroke();fitText(ctx,design.title,-55,107,510,design.font==="condensed"?"Georgia":font,600);fitText(ctx,design.subtitle,63,24,460,"Arial",600);fitText(ctx,design.detail,203,19,450,"Arial",400)}
- if(style==="badge"){ctx.fillStyle=design.accent;ctx.beginPath();ctx.arc(0,-25,215,0,Math.PI*2);ctx.fill();ctx.fillStyle=design.ink;fitText(ctx,design.title,-74,139,430,font);fitText(ctx,design.subtitle,37,41,415,font);ctx.fillRect(-110,90,220,3);fitText(ctx,design.detail,137,15,340,"Arial",600)}
- if(logo){const ratio=logo.width/logo.height,w=Math.min(170,110*ratio),h=w/ratio;ctx.drawImage(logo,-w/2,235,w,h)}ctx.restore()}
+function renderArtwork(canvas:HTMLCanvasElement,design:Design,logo?:HTMLImageElement,images=new Map<string,HTMLImageElement>()){canvas.width=2400;canvas.height=3000;const ctx=canvas.getContext("2d")!;ctx.clearRect(0,0,canvas.width,canvas.height);if(!design.enabled)return;ctx.save();ctx.translate(1200,1500);ctx.scale(4,4);ctx.textAlign="center";ctx.textBaseline="middle";ctx.fillStyle=design.ink;const font=family(design),style=design.template===""?"":styles[design.template]||"arch";
+ if(style==="arch"){ctx.strokeStyle=design.ink;ctx.lineWidth=3;ctx.beginPath();ctx.arc(0,-40,188,Math.PI*1.06,Math.PI*1.94);ctx.stroke();drawMovableText(ctx,design,"title",-95,103,530,font);drawMovableText(ctx,design,"subtitle",10,110,490,font);ctx.fillStyle=design.accent;ctx.fillRect(-165,83,330,8);ctx.fillStyle=design.ink;drawMovableText(ctx,design,"detail",142,20,470,"Arial",600)}
+ if(style==="stack"){ctx.fillStyle=design.accent;ctx.save();ctx.rotate(-.06);ctx.fillRect(-246,-183,492,122);ctx.restore();ctx.fillStyle=design.ink;drawMovableText(ctx,design,"title",-127,126,470,font);drawMovableText(ctx,design,"subtitle",0,136,520,font);drawMovableText(ctx,design,"detail",127,21,475,"Arial",600);ctx.fillRect(-215,79,430,3)}
+ if(style==="minimal"){drawMovableText(ctx,design,"title",-50,98,510,design.font==="condensed"?"Georgia":font,400);ctx.fillRect(-27,36,54,3);drawMovableText(ctx,design,"subtitle",95,23,470,"Arial",600);drawMovableText(ctx,design,"detail",142,17,440,"Arial",400)}
+ if(style==="sport"){ctx.strokeStyle=design.ink;ctx.lineWidth=5;ctx.strokeRect(-244,-193,488,370);ctx.save();ctx.transform(1,0,-.14,1,0,0);drawMovableText(ctx,design,"title",-102,112,420,font);drawMovableText(ctx,design,"subtitle",0,94,420,font);ctx.restore();ctx.fillStyle=design.accent;ctx.fillRect(-244,76,488,101);ctx.fillStyle=design.ink;drawMovableText(ctx,design,"detail",127,20,447,"Arial",700)}
+ if(style==="serif"){ctx.strokeStyle=design.accent;ctx.lineWidth=3;ctx.beginPath();ctx.ellipse(0,-26,236,193,-.2,0,Math.PI*2);ctx.stroke();drawMovableText(ctx,design,"title",-55,107,510,design.font==="condensed"?"Georgia":font,600);drawMovableText(ctx,design,"subtitle",63,24,460,"Arial",600);drawMovableText(ctx,design,"detail",203,19,450,"Arial",400)}
+ if(style==="badge"){ctx.fillStyle=design.accent;ctx.beginPath();ctx.arc(0,-25,215,0,Math.PI*2);ctx.fill();ctx.fillStyle=design.ink;drawMovableText(ctx,design,"title",-74,139,430,font);drawMovableText(ctx,design,"subtitle",37,41,415,font);ctx.fillRect(-110,90,220,3);drawMovableText(ctx,design,"detail",137,15,340,"Arial",600)}
+ if(logo){const ratio=logo.width/logo.height,w=Math.min(170,110*ratio),h=w/ratio;ctx.drawImage(logo,-w/2,235,w,h)}ctx.restore();drawStrokes(ctx,design.strokes,canvas.width,canvas.height);drawElements(ctx,design.elements,canvas.width,canvas.height,images)}
 
 function downloadCanvas(canvas:HTMLCanvasElement|null,name:string){if(!canvas)return;canvas.toBlob(blob=>{if(!blob)return;const url=URL.createObjectURL(blob),anchor=document.createElement("a");anchor.href=url;anchor.download=name;anchor.click();setTimeout(()=>URL.revokeObjectURL(url),30000)},"image/png")}
 
 export default function PartnerDesignView({production,onClose}:{production:any;onClose:()=>void}){
  const item=production.order.items[0],designRecord=item?.storeProduct?.design,project=designRecord?.canvas as Project|undefined;
  const [side,setSide]=useState<Side>("front"),[view,setView]=useState<"artwork"|"product">("artwork"),[grid,setGrid]=useState(true),[perspective,setPerspective]=useState(false),[zoom,setZoom]=useState(75),canvas=useRef<HTMLCanvasElement>(null),[logo,setLogo]=useState<HTMLImageElement>();
+ const elementImages=useRef(new Map<string,HTMLImageElement>());
  const active=project?.sides?.[side];
  useEffect(()=>{if(!active?.logo){setLogo(undefined);return}const image=new Image();image.onload=()=>setLogo(image);image.src=active.logo},[active?.logo]);
- useEffect(()=>{if(canvas.current&&active)renderArtwork(canvas.current,active,logo)},[active,logo]);
+ useEffect(()=>{let mounted=true;Promise.all((active?.elements||[]).map(e=>new Promise<void>(resolve=>{if(e.type!=="image"||elementImages.current.has(e.src)){resolve();return}const img=new Image();img.onload=()=>{elementImages.current.set(e.src,img);resolve()};img.onerror=()=>resolve();img.src=e.src}))).then(()=>{if(mounted&&canvas.current&&active)renderArtwork(canvas.current,active,logo,elementImages.current)});return()=>{mounted=false}},[active,logo,view]);
  const slug=useMemo(()=>String(designRecord?.name||"design").toLowerCase().replace(/[^a-z0-9]+/g,"-").replace(/(^-|-$)/g,""),[designRecord?.name]);
  if(!project||!active)return <div className="tech-backdrop"><div className="tech-viewer tech-empty"><button onClick={onClose}><X/></button><h2>Data desain tidak tersedia</h2><p>Order ini tidak memiliki canvas desain yang dapat ditampilkan.</p></div></div>;
  return <div className="tech-backdrop" onMouseDown={event=>event.target===event.currentTarget&&onClose()}><section className="tech-viewer">

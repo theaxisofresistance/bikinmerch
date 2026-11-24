@@ -47,7 +47,6 @@ export async function POST(req: NextRequest) {
       role: user.role,
     });
     const response = NextResponse.json({
-      ...(req.headers.get("x-bikinmerch-client") === "flutter-native" ? {token} : {}),
       user: {
         id: user.id,
         name: user.name,

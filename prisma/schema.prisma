@@ -16,6 +16,9 @@ enum Role {
 }
 
 enum OrderStatus {
+  PENDING_PAYMENT
+  PAYMENT_EXPIRED
+  PAYMENT_FAILED
   PAID
   QUEUED
   PRINTING
@@ -116,7 +119,11 @@ model Order {
   total           Int
   shippingAddress String
   paymentMethod   String            @default("Mock payment")
-  paidAt          DateTime          @default(now())
+  paidAt          DateTime?         @default(now())
+  xenditInvoiceId String? @unique
+  paymentUrl String?
+  reservedVariantId String?
+  assignedPartnerId String?
   createdAt       DateTime          @default(now())
   customer        User              @relation(fields: [customerId], references: [id])
   items           OrderItem[]

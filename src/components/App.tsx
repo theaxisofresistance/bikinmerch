@@ -1,21 +1,24 @@
 "use client";
-import {useCallback, useEffect, useMemo, useState} from "react";
+import {useCallback, useEffect, useMemo, useRef, useState} from "react";
 import {usePathname, useRouter, useSearchParams} from "next/navigation";
 import {
   ArrowRight,
   Check,
-  ChevronDown,
   ChevronRight,
   Heart,
+  LayoutDashboard,
+  LogOut,
   Menu,
   Package,
   Palette,
   Plus,
   Shirt,
   ShoppingBag,
+  ShieldCheck,
   Store,
   TrendingUp,
   Truck,
+  UserRound,
   X,
 } from "lucide-react";
 import Link from "next/link";
@@ -65,6 +68,26 @@ export default function App() {
     [address, setAddress] = useState("");
   const [appLoading, setAppLoading] = useState(true),
     [pageLoading, setPageLoading] = useState(false);
+  const profileRef = useRef<HTMLDivElement>(null);
+  const [favoriteProducts, setFavoriteProducts] = useState<string[]>([]);
+  useEffect(() => {
+    if (!menu) return;
+    function closeOnOutsideClick(event: MouseEvent) {
+      if (!profileRef.current?.contains(event.target as Node)) setMenu(false);
+    }
+    function closeOnEscape(event: KeyboardEvent) {
+      if (event.key === "Escape") {
+        setMenu(false);
+        profileRef.current?.querySelector("button")?.focus();
+      }
+    }
+    document.addEventListener("mousedown", closeOnOutsideClick);
+    document.addEventListener("keydown", closeOnEscape);
+    return () => {
+      document.removeEventListener("mousedown", closeOnOutsideClick);
+      document.removeEventListener("keydown", closeOnEscape);
+    };
+  }, [menu]);
   const load = useCallback(async () => {
     setAppLoading(true);
     try {
@@ -92,7 +115,7 @@ export default function App() {
       } else if (path === "/partner" && user) {
         url = "/api/production";
         setter = setOrders;
-      } else if (path === "/orders" && user?.role === "CUSTOMER") {
+      } else if (path === "/orders" && user && ["CUSTOMER", "CREATOR"].includes(user.role)) {
         url = "/api/orders";
         setter = setOrders;
       } else if (path.startsWith("/store/") && path !== "/store") {
@@ -148,6 +171,7 @@ export default function App() {
   async function logout() {
     await fetch("/api/auth/me", {method: "DELETE"});
     setUser(null);
+    setMenu(false);
     setDashboard(null);
     router.push("/");
   }
@@ -180,11 +204,10 @@ export default function App() {
   }
   const href = path;
   const isCreator = user?.role === "CREATOR";
-  const name = user?.name?.split(" ")[0];
   if (appLoading || pageLoading) return <PageSkeleton kind={path} />;
   return (
     <>
-      <header className="topbar">
+      {path !== "/studio" && <header className="topbar">
         <div
           className="container"
           style={{display: "flex", alignItems: "center"}}>
@@ -192,7 +215,7 @@ export default function App() {
             Bikin<span>Merch</span>
           </Link>
           <nav className="navlinks">
-            {user?.role === "CUSTOMER" ? (
+            {user && ["CUSTOMER", "CREATOR"].includes(user.role) ? (
               <Link href="/orders">Pesanan</Link>
             ) : null}
             <Link href="/#produk">Katalog</Link>
@@ -218,53 +241,61 @@ export default function App() {
               gap: 10,
             }}>
             {user ? (
-              <>
-                <span className="muted" style={{fontSize: 12}}>
-                  Halo, {name}
-                </span>
+              <div className="profile-dropdown" ref={profileRef}>
                 <button
-                  className="btn btn-light btn-sm"
+                  type="button"
+                  className="profile-button"
+                  aria-label={`Menu profil ${user.name}`}
+                  aria-expanded={menu}
+                  aria-controls="profile-menu"
                   onClick={() => setMenu(!menu)}>
-                  {user.role.replace("_", " ")} <ChevronDown size={13} />
+                  <UserRound size={22} aria-hidden="true" />
                 </button>
                 {menu && (
                   <div
-                    style={{
-                      position: "absolute",
-                      right: 25,
-                      top: 62,
-                      zIndex: 20,
-                      background: "white",
-                      padding: 8,
-                      borderRadius: 12,
-                      boxShadow: "0 10px 32px #10201622",
-                    }}>
+                    id="profile-menu"
+                    className="profile-panel">
+                    <div className="profile-identity">
+                      <span className="profile-avatar" aria-hidden="true">
+                        {user.name.trim().charAt(0).toUpperCase() || <UserRound size={18} />}
+                      </span>
+                      <div className="profile-details">
+                        <strong>{user.name}</strong>
+                        <span>{user.email}</span>
+                      </div>
+                    </div>
+                    <nav className="profile-links" aria-label="Navigasi akun">
                     {[
-                      ["Dashboard", "/dashboard"],
+                      {label: "Dashboard", href: "/dashboard", icon: LayoutDashboard},
                       ...(user.role !== "CUSTOMER"
-                        ? [["Studio", "/studio"]]
+                        ? [{label: "Studio", href: "/studio", icon: Palette}]
                         : []),
-                      ...(isCreator ? [["Desain Tersimpan", "/designs"]] : []),
-                      ...(user.role === "CUSTOMER"
-                        ? [["Pesanan Saya", "/orders"]]
+                      ...(isCreator ? [{label: "Desain Tersimpan", href: "/designs", icon: Shirt}] : []),
+                      ...(["CUSTOMER", "CREATOR"].includes(user.role)
+                        ? [{label: "Pesanan Saya", href: "/orders", icon: ShoppingBag}]
                         : []),
-                      ["Partner", "/partner"],
-                      ["Admin", "/admin"],
-                    ].map(([t, h]) => (
+                      {label: "Partner", href: "/partner", icon: Truck},
+                      {label: "Admin", href: "/admin", icon: ShieldCheck},
+                    ].map(({label, href, icon: Icon}) => (
                       <Link
-                        key={t}
-                        href={h}
-                        className="side-link"
-                        style={{display: "block"}}>
-                        {t}
+                        key={label}
+                        href={href}
+                        className="profile-item"
+                        onClick={() => setMenu(false)}>
+                        <Icon size={16} aria-hidden="true" />
+                        {label}
                       </Link>
                     ))}
-                    <button className="side-link" onClick={logout}>
+                    </nav>
+                    <div className="profile-footer">
+                    <button type="button" className="profile-item" onClick={logout}>
+                      <LogOut size={16} aria-hidden="true" />
                       Keluar
                     </button>
+                    </div>
                   </div>
                 )}
-              </>
+              </div>
             ) : (
               <>
                 <button
@@ -292,7 +323,7 @@ export default function App() {
             </button>
           </div>
         </div>
-      </header>
+      </header>}
       {path === "/" && (
         <main className="container">
           <section className="hero">
@@ -639,12 +670,27 @@ export default function App() {
                   <h2>Produk dari toko ini</h2>
                 </div>
               </div>
-              <section className="grid-products">
+              <section className="store-product-grid">
                 {store.products.map((sp: ShopItem) => (
-                  <article className="card" key={sp.id}>
-                    <div style={{position: "relative"}}>
+                  <article className="store-product-card" key={sp.id}>
+                    <div className="store-card-top">
+                      <button
+                        type="button"
+                        className="store-favorite"
+                        aria-label={`${favoriteProducts.includes(sp.id) ? "Hapus" : "Tambahkan"} ${sp.title} ${favoriteProducts.includes(sp.id) ? "dari" : "ke"} favorit`}
+                        aria-pressed={favoriteProducts.includes(sp.id)}
+                        onClick={() => setFavoriteProducts((items) =>
+                          items.includes(sp.id)
+                            ? items.filter((id) => id !== sp.id)
+                            : [...items, sp.id]
+                        )}>
+                        <Heart size={21} aria-hidden="true" />
+                      </button>
+                      <span className="store-collection-badge">Koleksi Kreator</span>
+                    </div>
+                    <div className="store-product-visual">
                       <img
-                        className="product-img"
+                        className="store-product-image"
                         src={sp.product.image}
                         alt={sp.title}
                       />
@@ -663,13 +709,12 @@ export default function App() {
                         />
                       )}
                     </div>
-                    <div className="card-body">
-                      <span className="badge">{sp.product.name}</span>
+                    <div className="store-product-info">
                       <h3>{sp.title}</h3>
-                      <div className="product-foot" style={{marginTop: 15}}>
-                        <span className="price">{money(sp.price)}</span>
+                      <p>{sp.product.category} · {sp.product.name}</p>
+                      <div className="store-product-actions">
                         <button
-                          className="btn btn-sm"
+                          className="store-buy-button"
                           disabled={Boolean(user && user.role !== "CUSTOMER")}
                           onClick={() => {
                             if (!user) {
@@ -685,6 +730,7 @@ export default function App() {
                             ? "Khusus Customer"
                             : "Beli sekarang"}
                         </button>
+                        <span className="store-product-price">{money(sp.price)}</span>
                       </div>
                     </div>
                   </article>
@@ -703,7 +749,7 @@ export default function App() {
           )}
         </main>
       )}
-      <footer className="footer">
+      {path !== "/studio" && <footer className="footer">
         <div
           className="container"
           style={{
@@ -721,7 +767,7 @@ export default function App() {
           <span>Produksi lokal, karya kreator Indonesia.</span>
           <span>Roadmap: payment gateway · logistik · API</span>
         </div>
-      </footer>
+      </footer>}
       {auth && (
         <div
           className="modal-backdrop"
@@ -912,7 +958,7 @@ function PageSkeleton({
       className={`skeleton-page${embedded ? " embedded" : ""}`}
       aria-busy="true"
       aria-label="Memuat data">
-      <div className="skeleton-header">
+      {!studio && <div className="skeleton-header">
         <div className="sk sk-logo" />
         <div className="sk-nav">
           <i className="sk" />
@@ -920,7 +966,7 @@ function PageSkeleton({
           <i className="sk" />
         </div>
         <div className="sk sk-user" />
-      </div>
+      </div>}
       {studio ? (
         <div className="skeleton-studio">
           <aside>
@@ -1305,7 +1351,7 @@ function OrderTrackingV2({
     "SHIPPED",
     "DELIVERED",
   ];
-  const allowed = user?.role === "CUSTOMER";
+  const allowed = Boolean(user && ["CUSTOMER", "CREATOR"].includes(user.role));
   return (
     <main className="container">
       <div className="page-head">
@@ -1329,7 +1375,7 @@ function OrderTrackingV2({
         </div>
       ) : !allowed ? (
         <div className="empty">
-          Halaman Pesanan Saya hanya tersedia untuk akun Customer.
+          Halaman Pesanan Saya tersedia untuk akun Customer dan Creator.
         </div>
       ) : !orders.length ? (
         <div className="empty">
@@ -1398,6 +1444,8 @@ function OrderTrackingV2({
                   </div>
                 ))}
               </div>
+              {o.status === "PENDING_PAYMENT" && <div style={{marginTop:16}}><p className="muted">Menunggu pembayaran. Produksi dimulai setelah pembayaran dikonfirmasi.</p>{o.paymentUrl && <a className="btn btn-sm" href={o.paymentUrl}>Lanjutkan pembayaran</a>}</div>}
+              {o.status === "PAYMENT_EXPIRED" && <p className="muted">Pembayaran kedaluwarsa. Pesanan belum masuk produksi.</p>}
               <div className="muted" style={{marginTop: 12, fontSize: 11}}>
                 Dikirim ke: {o.shippingAddress}
               </div>

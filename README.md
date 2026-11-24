@@ -1,9 +1,5 @@
 # BikinMerch MVP
 
-Versi Flutter (Android, iOS, dan Web) tersedia di [`flutter_app`](flutter_app/README.md).
-Versi tersebut memakai API Next.js dan database yang sama. Panduan menjalankan, konfigurasi alamat API,
-dan daftar fitur tersedia di README folder tersebut.
-
 Platform print-on-demand lokal untuk kreator Indonesia. Implementasi ini mencakup login multi-role, katalog produk, editor desain Fabric.js, penyimpanan desain, storefront, checkout dengan mock payment, order tracking, dashboard Creator, Admin, dan Print Partner.
 
 ## Prasyarat
@@ -70,3 +66,17 @@ pnpm build         # generate Prisma Client dan build Next.js
 ```
 
 Rencana setelah MVP: payment gateway Indonesia, integrasi kurir, dashboard payout, supplier routing berbasis lokasi dan SLA, moderasi desain/hak cipta, marketplace integration, B2B/bulk order, dan fulfillment API.
+
+## Pembayaran Studio — Xendit test mode
+
+Pesan dari Studio membuat order `PENDING_PAYMENT`, mencadangkan stok, lalu membuka Xendit Payment Link. Produksi baru dibuat setelah webhook pembayaran sah diterima. Callback berulang tidak menggandakan produksi; invoice kedaluwarsa mengembalikan stok. Checkout storefront tetap memakai mock payment.
+
+1. Isi `XENDIT_SECRET_KEY` dengan **secret API key Test Mode** berizin write invoice dan `XENDIT_WEBHOOK_TOKEN` dari dashboard Xendit. Live key ditolak.
+2. Isi `APP_URL` dengan alamat HTTPS aplikasi (untuk lokal gunakan HTTPS tunnel).
+3. Jalankan `npx prisma generate` dan `npm run db:push` untuk menerapkan schema baru.
+4. Pada dashboard Xendit **Test Mode**, arahkan webhook **Payment Link / Invoice paid & expired** ke `https://DOMAIN/api/webhooks/xendit`.
+5. Pesan dari Studio, selesaikan simulasi pembayaran pada halaman Xendit, lalu pastikan order berstatus PAID dan satu production order QUEUED. Return URL hanya navigasi; bukan bukti pembayaran.
+
+Jika pembuatan tautan timeout, order tetap pending karena Xendit mungkin sudah membuat invoice. Periksa invoice berdasarkan external_id (ID order) di dashboard sebelum mencoba pembayaran lain. Jangan menganggap order pending sebagai pembayaran gagal; rekonsiliasi invoice yang tidak menerima callback melalui dashboard. Koneksi API test dan webhook nyata memerlukan kredensial akun serta URL publik.
+
+Referensi: https://github.com/xendit/xendit-node/blob/master/docs/invoice/CreateInvoiceRequest.md

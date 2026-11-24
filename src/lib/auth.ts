@@ -19,11 +19,9 @@ export async function signSession(user: Session) {
 }
 export async function readSession(req?: NextRequest): Promise<Session | null> {
   try {
-    const authorization = req?.headers.get("authorization");
-    const token = authorization
-      ? /^Bearer ([^ ]+)$/i.exec(authorization)?.[1]
-      : (req?.cookies.get("bm_session")?.value ??
-        (await cookies()).get("bm_session")?.value);
+    const token =
+      req?.cookies.get("bm_session")?.value ??
+      (await cookies()).get("bm_session")?.value;
     if (!token) return null;
     const {payload} = await jwtVerify(token, secret, {algorithms: ["HS256"]});
     return payload as unknown as Session;
