@@ -42,6 +42,10 @@ export function printBounds(
 ) {
   const kind = productName.toLowerCase();
   let x = 500, y = 440, width = fit === "regular" ? 285 : 330;
+  if(kind.includes("pin button")) return {x:300,y:305,width:400,height:400};
+  if(kind.includes("goodie bag")) return {x:335,y:440,width:330,height:370};
+  if(kind.includes("desk mat")) return {x:130,y:350,width:740,height:350};
+  if(kind.includes("tumbler")) return {x:385,y:330,width:230,height:430};
   if (kind.includes("hoodie")) { y = 540; width = 310; }
   else if (kind.includes("tote")) { y = 650; width = 315; }
   else if (kind.includes("mug")) { x = side === "front" ? 416 : 584; y = 560; width = 280; }

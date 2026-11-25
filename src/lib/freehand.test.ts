@@ -57,3 +57,14 @@ test("strokes are clipped, scaled for export, and retain their color and width",
   assert.equal(calls[0][0], "save");
   assert.equal(calls.at(-1)?.[0], "restore");
 });
+
+test("pin and goodie bag use their own printable surfaces",()=>{
+ const design={position:"center",scale:100};
+ const pin=printBounds("Pin Button","regular","front",design);
+ assert.equal(pin.width,pin.height);
+ assert.equal(pin.x+pin.width/2,500);
+ const bag=printBounds("Goodie Bag","regular","front",design);
+ assert.ok(bag.y>=400);
+ assert.ok(bag.width<bag.height);
+ assert.deepEqual(printBounds("Goodie Bag","regular","back",design),bag);
+});

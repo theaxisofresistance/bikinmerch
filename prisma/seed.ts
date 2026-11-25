@@ -57,7 +57,7 @@ async function main() {
       description: "Cotton combed 24s, nyaman untuk harian.",
       image:
         "https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?auto=format&fit=crop&w=900&q=85",
-      basePrice: 85000,
+      basePrice: 45000,
       printArea: "28 × 35 cm",
     },
     {
@@ -77,7 +77,7 @@ async function main() {
       description: "Tote bag kanvas tebal untuk aktivitas harian.",
       image:
         "https://images.unsplash.com/photo-1590874103328-eac38a683ce7?auto=format&fit=crop&w=900&q=85",
-      basePrice: 65000,
+      basePrice: 15000,
       printArea: "25 × 30 cm",
     },
     {
@@ -87,7 +87,7 @@ async function main() {
       description: "Mug keramik  mug keramik 330ml.",
       image:
         "https://images.unsplash.com/photo-1514228742587-6b1558fcca3d?auto=format&fit=crop&w=900&q=85",
-      basePrice: 55000,
+      basePrice: 15000,
       printArea: "20 × 9 cm",
     },
     {
@@ -100,18 +100,23 @@ async function main() {
       basePrice: 48000,
       printArea: "14 × 20 cm",
     },
+    {name:"Desk Mat",slug:"desk-mat",category:"Aksesori",description:"Desk mat 80 × 40 cm dengan permukaan kain dan alas karet antiselip.",image:"/studio/deskmat.png",basePrice:50000,printArea:"80 × 40 cm"},
+    {name:"Tumbler 500 ml",slug:"tumbler-500ml",category:"Drinkware",description:"Tumbler stainless steel 500 ml dengan desain custom.",image:"/studio/tumbler.png",basePrice:40000,printArea:"8 × 15 cm"},
+    {name:"Pin Button",slug:"pin-button",category:"Aksesori",description:"Pin bulat diameter 58 mm dengan permukaan cetak glossy dan pengait peniti.",image:"/studio/pin.png",basePrice:3500,printArea:"Diameter 5,8 cm"},
+    {name:"Goodie Bag",slug:"goodie-bag",category:"Aksesori",description:"Goodie bag spunbond 30 × 40 cm untuk hadiah dan acara.",image:"/studio/goodiebag.png",basePrice:5000,printArea:"20 × 25 cm"},
   ];
+  const minimumPriceSlugs = new Set(["classic-tshirt", "ceramic-mug", "pin-button", "canvas-tote", "desk-mat", "tumbler-500ml", "goodie-bag"]);
   for (const p of products) {
     const product = await db.product.upsert({
       where: {slug: p.slug},
-      update: {},
+      update: minimumPriceSlugs.has(p.slug) ? {basePrice: p.basePrice} : {},
       create: p,
     });
-    for (const [name, color, size] of [
+    for (const [name, color, size] of (p.slug==="pin-button"?[["58 mm / Putih","#ffffff","58 mm"]]:p.slug==="goodie-bag"?[["30 × 40 cm / Putih","#f4f1eb","30 × 40 cm"],["30 × 40 cm / Hitam","#252525","30 × 40 cm"],["30 × 40 cm / Natural","#d7c8ad","30 × 40 cm"]]:p.slug==="desk-mat"?[["80 × 40 cm / Putih","#f4f1eb","80 × 40 cm"],["80 × 40 cm / Hitam","#252525","80 × 40 cm"]]:p.slug==="tumbler-500ml"?[["500 ml / Putih","#f4f1eb","500 ml"],["500 ml / Hitam","#252525","500 ml"],["500 ml / Sage","#a5af8e","500 ml"]]:[
       ["S / Putih", "#f4f1eb", "S"],
       ["M / Hitam", "#252525", "M"],
       ["L / Natural", "#d7c8ad", "L"],
-    ] as const)
+    ]) as [string,string,string][])
       await db.productVariant.upsert({
         where: {productId_name: {productId: product.id, name}},
         update: {},

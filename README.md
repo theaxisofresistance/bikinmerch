@@ -80,3 +80,7 @@ Pesan dari Studio membuat order `PENDING_PAYMENT`, mencadangkan stok, lalu membu
 Jika pembuatan tautan timeout, order tetap pending karena Xendit mungkin sudah membuat invoice. Periksa invoice berdasarkan external_id (ID order) di dashboard sebelum mencoba pembayaran lain. Jangan menganggap order pending sebagai pembayaran gagal; rekonsiliasi invoice yang tidak menerima callback melalui dashboard. Koneksi API test dan webhook nyata memerlukan kredensial akun serta URL publik.
 
 Referensi: https://github.com/xendit/xendit-node/blob/master/docs/invoice/CreateInvoiceRequest.md
+
+Produk tambahan: Desk Mat 80 × 40 cm (harga dasar Rp50.000) dan Tumbler 500 ml (Rp40.000). Harga dan ukuran ini adalah nilai awal katalog yang dapat disesuaikan. Jalankan `npm run db:seed` untuk menambahkan produk dan variannya tanpa menghapus data yang ada.
+
+Produk tambahan: Pin Button 58 mm (harga dasar Rp3.500) dan Goodie Bag spunbond 30 × 40 cm (Rp5.000). Nilai awal ini dapat disesuaikan; jalankan `npm run db:seed` agar produk dan varian masuk katalog database.
