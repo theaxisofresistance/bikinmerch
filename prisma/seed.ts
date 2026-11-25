@@ -104,15 +104,16 @@ async function main() {
     {name:"Tumbler 500 ml",slug:"tumbler-500ml",category:"Drinkware",description:"Tumbler stainless steel 500 ml dengan desain custom.",image:"/studio/tumbler.png",basePrice:40000,printArea:"8 × 15 cm"},
     {name:"Pin Button",slug:"pin-button",category:"Aksesori",description:"Pin bulat diameter 58 mm dengan permukaan cetak glossy dan pengait peniti.",image:"/studio/pin.png",basePrice:3500,printArea:"Diameter 5,8 cm"},
     {name:"Goodie Bag",slug:"goodie-bag",category:"Aksesori",description:"Goodie bag spunbond 30 × 40 cm untuk hadiah dan acara.",image:"/studio/goodiebag.png",basePrice:5000,printArea:"20 × 25 cm"},
+    {name:"Payung Custom",slug:"payung-custom",category:"Aksesori",description:"Payung polyester diameter 100 cm dengan cetak custom pada panel kanopi.",image:"/studio/umbrella.png",basePrice:35000,printArea:"20 × 15 cm / panel"},
   ];
-  const minimumPriceSlugs = new Set(["classic-tshirt", "ceramic-mug", "pin-button", "canvas-tote", "desk-mat", "tumbler-500ml", "goodie-bag"]);
+  const minimumPriceSlugs = new Set(["classic-tshirt", "ceramic-mug", "pin-button", "canvas-tote", "desk-mat", "tumbler-500ml", "goodie-bag", "payung-custom"]);
   for (const p of products) {
     const product = await db.product.upsert({
       where: {slug: p.slug},
       update: minimumPriceSlugs.has(p.slug) ? {basePrice: p.basePrice} : {},
       create: p,
     });
-    for (const [name, color, size] of (p.slug==="pin-button"?[["58 mm / Putih","#ffffff","58 mm"]]:p.slug==="goodie-bag"?[["30 × 40 cm / Putih","#f4f1eb","30 × 40 cm"],["30 × 40 cm / Hitam","#252525","30 × 40 cm"],["30 × 40 cm / Natural","#d7c8ad","30 × 40 cm"]]:p.slug==="desk-mat"?[["80 × 40 cm / Putih","#f4f1eb","80 × 40 cm"],["80 × 40 cm / Hitam","#252525","80 × 40 cm"]]:p.slug==="tumbler-500ml"?[["500 ml / Putih","#f4f1eb","500 ml"],["500 ml / Hitam","#252525","500 ml"],["500 ml / Sage","#a5af8e","500 ml"]]:[
+    for (const [name, color, size] of (p.slug==="payung-custom"?[["100 cm / Putih","#ffffff","100 cm"],["100 cm / Hitam","#252525","100 cm"],["100 cm / Navy","#243b60","100 cm"]]:p.slug==="pin-button"?[["58 mm / Putih","#ffffff","58 mm"]]:p.slug==="goodie-bag"?[["30 × 40 cm / Putih","#f4f1eb","30 × 40 cm"],["30 × 40 cm / Hitam","#252525","30 × 40 cm"],["30 × 40 cm / Natural","#d7c8ad","30 × 40 cm"]]:p.slug==="desk-mat"?[["80 × 40 cm / Putih","#f4f1eb","80 × 40 cm"],["80 × 40 cm / Hitam","#252525","80 × 40 cm"]]:p.slug==="tumbler-500ml"?[["500 ml / Putih","#f4f1eb","500 ml"],["500 ml / Hitam","#252525","500 ml"],["500 ml / Sage","#a5af8e","500 ml"]]:[
       ["S / Putih", "#f4f1eb", "S"],
       ["M / Hitam", "#252525", "M"],
       ["L / Natural", "#d7c8ad", "L"],

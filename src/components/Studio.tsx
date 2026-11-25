@@ -11,8 +11,8 @@ import {drawStrokes,printBounds,type PenStroke} from "@/lib/freehand";
 
 type Product={id:string;name:string;image:string;basePrice:number;printArea:string;category?:string;variants?:{id:string;name:string;color:string;size:string;stock?:number}[]};
 type Side="front"|"back";
-type MockupKind="shirt"|"hoodie"|"tote"|"mug"|"notebook"|"deskmat"|"tumbler"|"pin"|"goodiebag";
-function mockupKind(productName:string):MockupKind{const name=productName.toLowerCase();return name.includes("pin button")?"pin":name.includes("goodie bag")?"goodiebag":name.includes("desk mat")?"deskmat":name.includes("tumbler")?"tumbler":name.includes("hoodie")?"hoodie":name.includes("tote")?"tote":name.includes("mug")?"mug":name.includes("t-shirt")?"shirt":"notebook"}
+type MockupKind="shirt"|"hoodie"|"tote"|"mug"|"notebook"|"deskmat"|"tumbler"|"pin"|"goodiebag"|"umbrella";
+function mockupKind(productName:string):MockupKind{const name=productName.toLowerCase();return name.includes("payung")?"umbrella":name.includes("pin button")?"pin":name.includes("goodie bag")?"goodiebag":name.includes("desk mat")?"deskmat":name.includes("tumbler")?"tumbler":name.includes("hoodie")?"hoodie":name.includes("tote")?"tote":name.includes("mug")?"mug":name.includes("t-shirt")?"shirt":"notebook"}
 type Design={elements?:DesignElement[];textOffsets?:Partial<Record<TextKey,TextOffset>>;strokes?:PenStroke[];enabled:boolean;template:string;title:string;subtitle:string;detail:string;ink:string;accent:string;font:"condensed"|"sans"|"serif";position:"chest"|"center"|"large";scale:number;logo:string|null};
 type Project={fit:"regular"|"oversized";shirt:string;activeSide:Side;sides:Record<Side,Design>};
 
@@ -51,7 +51,7 @@ export default function Studio({products,user,onLogin}:{products:Product[];user:
  const componentDrag=useRef<{pointer:number;start:TextOffset;element:DesignElement;before:Project}|null>(null);
  const textDrag=useRef<{pointerId:number;key:TextKey;start:TextOffset;offset:TextOffset;box:TextBox;before:Project;wasDirty:boolean;moved:boolean}|null>(null);
  const draftStroke=useRef<PenStroke|null>(null),drawingPointer=useRef<number|null>(null),previewFrame=useRef<number|null>(null);
- const canvasRef=useRef<HTMLCanvasElement>(null),mockupImages=useRef<Record<MockupKind,Partial<Record<Side,HTMLImageElement>>>>({shirt:{},hoodie:{},tote:{},mug:{},notebook:{},deskmat:{},tumbler:{},pin:{},goodiebag:{}}),logoImages=useRef(new Map<string,HTMLImageElement>()),history=useRef<Project[]>([]),future=useRef<Project[]>([]);
+ const canvasRef=useRef<HTMLCanvasElement>(null),mockupImages=useRef<Record<MockupKind,Partial<Record<Side,HTMLImageElement>>>>({shirt:{},hoodie:{},tote:{},mug:{},notebook:{},deskmat:{},tumbler:{},pin:{},goodiebag:{},umbrella:{}}),logoImages=useRef(new Map<string,HTMLImageElement>()),history=useRef<Project[]>([]),future=useRef<Project[]>([]);
  const [project,setProject]=useState<Project>(initialProject),[designName,setDesignName]=useState("Desain tanpa judul"),[category,setCategory]=useState("Semua"),[toast,setToast]=useState(""),[dirty,setDirty]=useState(false),[savedId,setSavedId]=useState(""),[busy,setBusy]=useState(false),[downloadOpen,setDownloadOpen]=useState(false),[orderOpen,setOrderOpen]=useState(false),[orderQty,setOrderQty]=useState(1),[orderAddress,setOrderAddress]=useState(""),[variantId,setVariantId]=useState(""),[exportSide,setExportSide]=useState<Side>("front"),[ready,setReady]=useState(false),[,forceHistory]=useState(0);
  const product=products.find(item=>item.id===search.get("product"))||products.find(item=>item.name.toLowerCase().includes("t-shirt"))||products[0],state=project.sides[project.activeSide];
  useEffect(()=>{setSelectedText(null);setEditingText(null)},[project.activeSide,product?.id]);

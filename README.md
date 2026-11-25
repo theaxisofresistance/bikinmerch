@@ -84,3 +84,5 @@ Referensi: https://github.com/xendit/xendit-node/blob/master/docs/invoice/Create
 Produk tambahan: Desk Mat 80 × 40 cm (harga dasar Rp50.000) dan Tumbler 500 ml (Rp40.000). Harga dan ukuran ini adalah nilai awal katalog yang dapat disesuaikan. Jalankan `npm run db:seed` untuk menambahkan produk dan variannya tanpa menghapus data yang ada.
 
 Produk tambahan: Pin Button 58 mm (harga dasar Rp3.500) dan Goodie Bag spunbond 30 × 40 cm (Rp5.000). Nilai awal ini dapat disesuaikan; jalankan `npm run db:seed` agar produk dan varian masuk katalog database.
+
+Payung Custom: diameter 100 cm, area cetak 20 × 15 cm per panel, harga dasar Rp35.000, varian Putih/Hitam/Navy. Ukuran dan spesifikasi adalah nilai awal katalog; jalankan `npm run db:seed` untuk menambahkannya. Mockup Studio menampilkan kanopi dari atas.

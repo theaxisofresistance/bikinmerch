@@ -68,3 +68,10 @@ test("pin and goodie bag use their own printable surfaces",()=>{
  assert.ok(bag.width<bag.height);
  assert.deepEqual(printBounds("Goodie Bag","regular","back",design),bag);
 });
+
+test("umbrella artwork stays within a canopy panel",()=>{
+ const area=printBounds("Payung Custom","regular","front",{position:"center",scale:100});
+ assert.equal(area.width/area.height,20/15);
+ assert.equal(area.x+area.width/2,500);
+ assert.ok(area.y>500 && area.y+area.height<900);
+});
